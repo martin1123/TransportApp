@@ -6,14 +6,20 @@ const TripForm = () => {
   const [destino, setDestino] = useState('')
   const [sugerenciasOrigen, setSugerenciasOrigen] = useState([])
   const [sugerenciasDestino, setSugerenciasDestino] = useState([])
+  const [error, setError] = useState('')
 
   const handleOrigenChange = async (e) => {
     const value = e.target.value
     setOrigen(value)
+    setError('')
 
     if (value.length > 2) {
-      const results = await buscarLugares(value)
-      setSugerenciasOrigen(results)
+      try {
+        const results = await buscarLugares(value)
+        setSugerenciasOrigen(results)
+      } catch {
+        setError('Error al buscar origen')
+      }
     } else {
       setSugerenciasOrigen([])
     }
@@ -22,10 +28,15 @@ const TripForm = () => {
   const handleDestinoChange = async (e) => {
     const value = e.target.value
     setDestino(value)
+    setError('')
 
     if (value.length > 2) {
-      const results = await buscarLugares(value)
-      setSugerenciasDestino(results)
+      try {
+        const results = await buscarLugares(value)
+        setSugerenciasDestino(results)
+      } catch {
+        setError('Error al buscar destino')
+      }
     } else {
       setSugerenciasDestino([])
     }
@@ -34,6 +45,7 @@ const TripForm = () => {
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Planificar viaje</h2>
+      {error && <p className="text-red-600 mb-2">{error}</p>}
       <form className="space-y-4">
         <div>
           <label className="block text-sm">Origen</label>
