@@ -4,9 +4,8 @@ import { buscarLugares } from '../lib/mapboxService'
 const TripForm = () => {
   const [origen, setOrigen] = useState('')
   const [destino, setDestino] = useState('')
-  const [sugerenciasOrigen, setSugerenciasOrigen] = useState([])
-  const [sugerenciasDestino, setSugerenciasDestino] = useState([])
-  const [error, setError] = useState('')
+  const [coordOrigen, setCoordOrigen] = useState(null)
+  const [coordDestino, setCoordDestino] = useState(null)
 
   const handleOrigenChange = async (e) => {
     const value = e.target.value
@@ -42,6 +41,18 @@ const TripForm = () => {
     }
   }
 
+  const seleccionarOrigen = (place) => {
+    setOrigen(place.place_name)
+    setCoordOrigen(place.center)
+    setSugerenciasOrigen([])
+  }
+
+  const seleccionarDestino = (place) => {
+    setDestino(place.place_name)
+    setCoordDestino(place.center)
+    setSugerenciasDestino([])
+  }
+
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Planificar viaje</h2>
@@ -60,6 +71,7 @@ const TripForm = () => {
             {sugerenciasOrigen?.map((s) => (
               <li
                 key={s.id}
+                onClick={() => seleccionarOrigen(s)}
                 className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
               >
                 {s.place_name}
@@ -81,6 +93,7 @@ const TripForm = () => {
             {sugerenciasDestino?.map((s) => (
               <li
                 key={s.id}
+                onClick={() => seleccionarDestino(s)}
                 className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
               >
                 {s.place_name}
@@ -88,6 +101,17 @@ const TripForm = () => {
             ))}
           </ul>
         </div>
+
+        {coordOrigen && (
+          <p className="text-sm text-gray-600">
+            Coordenadas origen: {coordOrigen[1].toFixed(5)}, {coordOrigen[0].toFixed(5)}
+          </p>
+        )}
+        {coordDestino && (
+          <p className="text-sm text-gray-600">
+            Coordenadas destino: {coordDestino[1].toFixed(5)}, {coordDestino[0].toFixed(5)}
+          </p>
+        )}
 
         <button
           type="submit"
