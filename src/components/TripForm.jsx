@@ -6,6 +6,9 @@ const TripForm = () => {
   const [destino, setDestino] = useState('')
   const [coordOrigen, setCoordOrigen] = useState(null)
   const [coordDestino, setCoordDestino] = useState(null)
+  const [sugerenciasOrigen, setSugerenciasOrigen] = useState([])
+  const [sugerenciasDestino, setSugerenciasDestino] = useState([])
+  const [error, setError] = useState('')
 
   const handleOrigenChange = async (e) => {
     const value = e.target.value
