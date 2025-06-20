@@ -1,52 +1,253 @@
 import React, { useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { Link, useNavigate } from 'react-router-dom'
+import { User, Mail, Lock, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
+/**
+ * Componente de Página de Registro
+ * Permite a los usuarios crear una nueva cuenta
+ * 
+ * Funcionalidades:
+ * - Formulario de registro de usuario
+ * - Validación de campos y contraseñas
+ * - Confirmación de contraseña
+ * - Manejo de errores y éxito
+ * - Redirección después del registro
+ * - Mostrar/ocultar contraseñas
+ * - Diseño responsive y atractivo
+ */
 const Register = () => {
+  // Hook de navegación para redirigir después del registro
+  const navigate = useNavigate()
+  
+  // Obtener función de registro del contexto de autenticación
   const { signUp } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
 
+  // Estados del formulario
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+  })
+  const [loading, setLoading] = useState(false)
+  const [notification, setNotification] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  /**
+   * Función para mostrar notificaciones temporales
+   * @param {string} type - Tipo de notificación ('success' o 'error')
+   * @param {string} message - Mensaje a mostrar
+   */
+  const showNotification = (type, message) => {
+    setNotification({ type, message })
+    
+    // Auto-ocultar notificación después de 3 segundos
+    setTimeout(() => {
+      setNotification(null)
+      // Si es exitoso, redirigir al login
+      if (type === 'success') {
+        navigate('/login')
+      }
+    }, 3000)
+  }
+
+  /**
+   * Función para manejar cambios en los inputs del formulario
+   * @param {Event} e - Evento del input
+   */
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+    // Limpiar notificación cuando el usuario empiece a escribir
+    if (notification) setNotification(null)
+  }
+
+  /**
+   * Función para manejar el envío del formulario
+   * @param {Event} e - Evento del formulario
+   */
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
+    
+    // Validaciones del formulario
+    if (!formData.email || !formData.password || !formData.confirmPassword) {
+      showNotification('error', 'Por favor completa todos los campos')
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      showNotification('error', 'Las contraseñas no coinciden')
+      return
+    }
+
+    if (formData.password.length < 6) {
+      showNotification('error', 'La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+
+    setLoading(true)
+
     try {
-      await signUp(email, password)
-      // redirigir o actualizar UI...
-    } catch (err) {
-      setError(err.message)
+      // Intentar registrar usuario
+      const { error } = await signUp(formData.email, formData.password)
+      
+      if (error) {
+        showNotification('error', error)
+      } else {
+        showNotification('success', '¡Cuenta creada exitosamente! Redirigiendo al login...')
+      }
+    } catch (error) {
+      showNotification('error', 'Error inesperado. Intenta nuevamente.')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <div className="max-w-md mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Crear cuenta</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm">Email</label>
-          <input
-            type="email"
-            className="w-full border px-3 py-2 rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div className="min-h-screen flex items-center justify-center gradient-bg p-4">
+      <div className="w-full max-w-md">
+        {/* Card principal del formulario */}
+        <div className="card shadow-custom animate-fade-in">
+          {/* Header del formulario */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-success-600 rounded-full mb-4">
+              <User size={32} className="text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">Crear Cuenta</h1>
+            <p className="text-dark-400">Únete a TransportApp</p>
+          </div>
+
+          {/* Notificación */}
+          {notification && (
+            <div className={`${notification.type === 'success' ? 'notification-success' : 'notification-error'} mb-6`}>
+              {notification.type === 'success' ? (
+                <CheckCircle size={20} />
+              ) : (
+                <AlertCircle size={20} />
+              )}
+              <span>{notification.message}</span>
+            </div>
+          )}
+
+          {/* Formulario de registro */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Campo de email */}
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-2">
+                Correo electrónico
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail size={20} className="text-dark-400" />
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="tu@email.com"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="input-field pl-10 w-full"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            {/* Campo de contraseña */}
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-2">
+                Contraseña
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock size={20} className="text-dark-400" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="input-field pl-10 pr-10 w-full"
+                  required
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} className="text-dark-400 hover:text-dark-300" />
+                  ) : (
+                    <Eye size={20} className="text-dark-400 hover:text-dark-300" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Campo de confirmar contraseña */}
+            <div>
+              <label className="block text-sm font-medium text-dark-300 mb-2">
+                Confirmar contraseña
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock size={20} className="text-dark-400" />
+                </div>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  placeholder="Repite tu contraseña"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className="input-field pl-10 pr-10 w-full"
+                  required
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} className="text-dark-400 hover:text-dark-300" />
+                  ) : (
+                    <Eye size={20} className="text-dark-400 hover:text-dark-300" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Botón de envío */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`btn-success w-full flex items-center justify-center gap-2 ${
+                loading ? 'btn-disabled' : ''
+              }`}
+            >
+              {loading && <div className="loading-spinner w-5 h-5"></div>}
+              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+            </button>
+
+            {/* Enlace a login */}
+            <div className="text-center">
+              <span className="text-dark-400">¿Ya tienes cuenta? </span>
+              <Link 
+                to="/login" 
+                className="text-success-400 hover:text-success-300 font-medium transition-colors duration-200"
+              >
+                Inicia sesión aquí
+              </Link>
+            </div>
+          </form>
         </div>
-        <div>
-          <label className="block text-sm">Contraseña</label>
-          <input
-            type="password"
-            className="w-full border px-3 py-2 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        {error && <p className="text-red-600">{error}</p>}
-        <button type="submit" className="w-full bg-green-600 text-white py-2 rounded">
-          Registrarme
-        </button>
-      </form>
+      </div>
     </div>
   )
 }

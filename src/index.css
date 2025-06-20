@@ -1,7 +1,9 @@
+/* Importar estilos de Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Estilos base personalizados */
 @layer base {
   /* Configuración del body principal */
   body {

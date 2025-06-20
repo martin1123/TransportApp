@@ -1,26 +1,50 @@
- import React from 'react'
- import { BrowserRouter, Routes, Route } from 'react-router-dom'
- import Login from './pages/Login'
- import Register from './pages/Register'
- import Dashboard from './pages/Dashboard'
- import TripForm from './pages/TripForm'
- import RentabilityCalculator from './components/RentabilityCalculator'
- import Navigation from './components/Navigation'
- import ProtectedRoute from './components/ProtectedRoute'
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import { EarningsProvider } from './context/EarningsContext'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Dashboard from './pages/Dashboard'
+import ProtectedRoute from './components/ProtectedRoute'
 
- function App() {
-   return (
-     <BrowserRouter>
-       <Navigation />
-       <Routes>
-         <Route path="/login" element={<Login />} />
-         <Route path="/register" element={<Register />} />
-         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-         <Route path="/viaje" element={<ProtectedRoute><TripForm /></ProtectedRoute>} />
-         <Route path="/rentabilidad" element={<ProtectedRoute><RentabilityCalculator /></ProtectedRoute>} />
-       </Routes>
-     </BrowserRouter>
-   )
- }
+/**
+ * Componente principal de la aplicación
+ * Configura el enrutamiento y los proveedores de contexto globales
+ * 
+ * Estructura:
+ * - Router: Maneja la navegación entre páginas
+ * - AuthProvider: Proporciona estado de autenticación global
+ * - EarningsProvider: Maneja el estado de los datos de ganancias
+ * - Routes: Define las rutas de la aplicación
+ */
+function App() {
+  return (
+    <div className="min-h-screen bg-dark-900">
+      <Router>
+        <AuthProvider>
+          <EarningsProvider>
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              <Route 
+                path="/dashboard/*" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </EarningsProvider>
+        </AuthProvider>
+      </Router>
+    </div>
+  )
+}
 
- export default App
+export default App
