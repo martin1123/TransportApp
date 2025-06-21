@@ -3,27 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { User, Mail, Lock, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
-/**
- * Componente de Página de Registro
- * Permite a los usuarios crear una nueva cuenta
- * 
- * Funcionalidades:
- * - Formulario de registro de usuario
- * - Validación de campos y contraseñas
- * - Confirmación de contraseña
- * - Manejo de errores y éxito
- * - Redirección después del registro
- * - Mostrar/ocultar contraseñas
- * - Diseño responsive y atractivo
- */
 const Register = () => {
-  // Hook de navegación para redirigir después del registro
   const navigate = useNavigate()
   
-  // Obtener función de registro del contexto de autenticación
   const { signUp } = useAuth()
-
-  // Estados del formulario
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -34,15 +17,10 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  /**
-   * Función para mostrar notificaciones temporales
-   * @param {string} type - Tipo de notificación ('success' o 'error')
-   * @param {string} message - Mensaje a mostrar
-   */
+
   const showNotification = (type, message) => {
     setNotification({ type, message })
     
-    // Auto-ocultar notificación después de 3 segundos
     setTimeout(() => {
       setNotification(null)
       // Si es exitoso, redirigir al login
@@ -52,28 +30,18 @@ const Register = () => {
     }, 3000)
   }
 
-  /**
-   * Función para manejar cambios en los inputs del formulario
-   * @param {Event} e - Evento del input
-   */
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
       [name]: value
     }))
-    // Limpiar notificación cuando el usuario empiece a escribir
     if (notification) setNotification(null)
   }
 
-  /**
-   * Función para manejar el envío del formulario
-   * @param {Event} e - Evento del formulario
-   */
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Validaciones del formulario
     if (!formData.email || !formData.password || !formData.confirmPassword) {
       showNotification('error', 'Por favor completa todos los campos')
       return
@@ -92,7 +60,6 @@ const Register = () => {
     setLoading(true)
 
     try {
-      // Intentar registrar usuario
       const { error } = await signUp(formData.email, formData.password)
       
       if (error) {

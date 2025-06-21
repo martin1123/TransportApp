@@ -4,32 +4,16 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import axios from 'axios';
 
-/**
- * Pantalla de Análisis de Rentabilidad de Viajes
- * 
- * Esta pantalla permite a los usuarios:
- * - Ingresar direcciones de origen y destino con autocompletado
- * - Calcular la distancia real usando la API de Mapbox
- * - Analizar la rentabilidad basada en precio por kilómetro
- * - Guardar análisis para referencia futura
- * - Ver clasificación automática de rentabilidad
- * 
- * Funcionalidades principales:
- * - Geocodificación de direcciones con sugerencias
- * - Cálculo de rutas y distancias reales
- * - Análisis de rentabilidad automático
- * - Interfaz responsive con Tailwind CSS
- */
 const TripsScreen = () => {
   // Obtener usuario autenticado del contexto
   const { user } = useAuth();
 
   // Estados del formulario principal
   const [formData, setFormData] = useState({
-    origin: '',                    // Dirección de origen ingresada por el usuario
-    destination: '',               // Dirección de destino ingresada por el usuario
-    desiredPricePerKm: '',        // Precio deseado por kilómetro (objetivo del conductor)
-    tripPrice: '',                // Precio total ofrecido por el viaje
+    origin: '',                   
+    destination: '',              
+    desiredPricePerKm: '',        
+    tripPrice: '',                
   });
 
   // Estados para el sistema de sugerencias de direcciones

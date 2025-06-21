@@ -3,26 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Car, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
-/**
- * Componente de Página de Login
- * Permite a los usuarios iniciar sesión en la aplicación
- * 
- * Funcionalidades:
- * - Formulario de inicio de sesión
- * - Validación de campos
- * - Manejo de errores
- * - Redirección después del login
- * - Mostrar/ocultar contraseña
- * - Diseño responsive y atractivo
- */
-const Login = () => {
-  // Hook de navegación para redirigir después del login
-  const navigate = useNavigate()
-  
-  // Obtener función de login del contexto de autenticación
-  const { signIn } = useAuth()
 
-  // Estados del formulario
+const Login = () => {
+  const navigate = useNavigate()
+    const { signIn } = useAuth()
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -31,28 +16,20 @@ const Login = () => {
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
-  /**
-   * Función para manejar cambios en los inputs del formulario
-   * @param {Event} e - Evento del input
-   */
+  
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
       [name]: value
     }))
-    // Limpiar error cuando el usuario empiece a escribir
     if (error) setError('')
   }
 
-  /**
-   * Función para manejar el envío del formulario
-   * @param {Event} e - Evento del formulario
-   */
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Validación básica
     if (!formData.email || !formData.password) {
       setError('Por favor completa todos los campos')
       return
@@ -62,13 +39,11 @@ const Login = () => {
     setError('')
 
     try {
-      // Intentar iniciar sesión
       const { error: authError } = await signIn(formData.email, formData.password)
       
       if (authError) {
         setError(authError)
       } else {
-        // Redirigir al dashboard si el login es exitoso
         navigate('/dashboard', { replace: true })
       }
     } catch (error) {
