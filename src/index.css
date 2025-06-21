@@ -1,9 +1,8 @@
-/* Importar estilos de Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Estilos base personalizados */
+/* Estilos */
 @layer base {
   /* Configuración del body principal */
   body {
@@ -39,12 +38,12 @@
     @apply bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50;
   }
 
-  /* Botón de éxito */
+  /* Botón */
   .btn-success {
     @apply bg-success-600 hover:bg-success-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-success-500 focus:ring-opacity-50;
   }
 
-  /* Botón de peligro */
+  /* Botón */
   .btn-danger {
     @apply bg-danger-600 hover:bg-danger-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-opacity-50;
   }
@@ -54,17 +53,17 @@
     @apply opacity-60 cursor-not-allowed transform-none hover:scale-100;
   }
 
-  /* Input personalizado */
+  /* Input  */
   .input-field {
     @apply bg-dark-700 border border-dark-600 rounded-lg px-4 py-3 text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
   }
 
-  /* Card personalizada */
+  /* Card  */
   .card {
     @apply bg-dark-800 border border-dark-700 rounded-xl p-6 shadow-lg transition-all duration-200 hover:shadow-xl;
   }
 
-  /* Notificación de éxito */
+  /* Notificación */
   .notification-success {
     @apply bg-success-600 text-white p-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in;
   }
@@ -74,15 +73,15 @@
     @apply bg-danger-600 text-white p-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in;
   }
 
-  /* Spinner de carga */
+  /* circulo de carga */
   .loading-spinner {
     @apply w-8 h-8 border-4 border-dark-600 border-t-primary-600 rounded-full animate-spin;
   }
 }
 
-/* Utilidades personalizadas */
+/* Utilidades  */
 @layer utilities {
-  /* Scrollbar personalizado */
+  /* Scrollbar  */
   .scrollbar-custom {
     scrollbar-width: thin;
     scrollbar-color: theme('colors.dark.600') theme('colors.dark.800');
@@ -109,7 +108,7 @@
     background: linear-gradient(135deg, theme('colors.dark.900') 0%, theme('colors.dark.800') 100%);
   }
 
-  /* Sombra personalizada */
+  /* Sombra  */
   .shadow-custom {
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
