@@ -3,26 +3,9 @@ import { NavLink } from 'react-router-dom'
 import { DollarSign, History, Route, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
-/**
- * Componente de Navegación
- * Barra de navegación que se adapta según el dispositivo:
- * - Desktop: Navegación lateral izquierda con logout en la parte inferior
- * - Móvil: Header superior con logout + Navbar inferior solo con navegación
- * 
- * Funcionalidades:
- * - Navegación entre secciones principales
- * - Indicador visual de sección activa
- * - Información del usuario logueado
- * - Botón de cerrar sesión en header móvil
- * - Diseño responsive automático
- */
 const Navigation = () => {
-  // Obtener función de logout del contexto de autenticación
   const { signOut, user } = useAuth()
 
-  /**
-   * Función para manejar el cierre de sesión
-   */
   const handleSignOut = async () => {
     const { error } = await signOut()
     if (error) {
@@ -30,13 +13,12 @@ const Navigation = () => {
     }
   }
 
-  // Configuración de los elementos de navegación principales
   const navigationItems = [
     {
       to: '/dashboard',
       icon: DollarSign,
       label: 'Ganancias',
-      end: true, // Coincidencia exacta para la ruta
+      end: true,
     },
     {
       to: '/dashboard/history',

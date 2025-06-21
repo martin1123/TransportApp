@@ -119,7 +119,7 @@ export const AuthProvider = ({ children }) => {
       const { error } = await supabase.auth.signOut()
 
       if (error) {
-        return { error: "Ocurrio un error al cerrar sesion" }
+        return { error: "Ocurrio un error al desconectarse de supabase al cerrar sesion" }
       }
 
       // Limpiar estados locales
