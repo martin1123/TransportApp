@@ -2,27 +2,13 @@ import React from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 
-/**
- * Componente de Ruta Protegida
- * Verifica si el usuario está autenticado antes de mostrar el contenido
- * Si no está autenticado, redirige al login
- * 
- * Funcionalidades:
- * - Verificación de autenticación
- * - Redirección automática al login
- * - Spinner de carga durante verificación
- * - Protección de rutas sensibles
- */
 const ProtectedRoute = ({ children }) => {
-  // Obtener datos de autenticación del contexto
   const { user, loading } = useAuth()
 
-  // Mostrar spinner mientras se verifica la autenticación
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-900">
         <div className="text-center">
-          {/* Spinner de carga personalizado */}
           <div className="loading-spinner mx-auto mb-4"></div>
           <p className="text-dark-400 text-lg">Verificando autenticación...</p>
         </div>

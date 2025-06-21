@@ -7,16 +7,6 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 
-/**
- * Componente principal de la aplicación
- * Configura el enrutamiento y los proveedores de contexto globales
- * 
- * Estructura:
- * - Router: Maneja la navegación entre páginas
- * - AuthProvider: Proporciona estado de autenticación global
- * - EarningsProvider: Maneja el estado de los datos de ganancias
- * - Routes: Define las rutas de la aplicación
- */
 function App() {
   return (
     <div className="min-h-screen bg-dark-900">
