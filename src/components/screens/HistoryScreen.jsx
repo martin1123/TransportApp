@@ -4,44 +4,24 @@ import { useAuth } from '@/context/AuthContext';
 import { useEarnings } from '@/context/EarningsContext';
 import { supabase } from '@/lib/supabase';
 
-/**
- * Pantalla de Historial de Ganancias
- * 
- * Esta pantalla muestra el historial completo de registros de ganancias del usuario
- * con funcionalidades de:
- * - Búsqueda por fecha o monto
- * - Filtrado y ordenamiento
- * - Visualización detallada de cada registro
- * - Eliminación de registros
- * - Cálculo de totales y estadísticas
- */
 const HistoryScreen = () => {
-  // Obtener usuario autenticado y función de refresco del contexto
   const { user } = useAuth();
   const { setRefreshHistory } = useEarnings();
 
-  // Estados para los datos del historial
-  const [records, setRecords] = useState([]); // Todos los registros sin filtrar
-  const [filteredRecords, setFilteredRecords] = useState([]); // Registros después de aplicar filtros
-  const [loading, setLoading] = useState(true); // Estado de carga inicial
-  const [refreshing, setRefreshing] = useState(false); // Estado de refresco manual
+  const [records, setRecords] = useState([]); 
+  const [filteredRecords, setFilteredRecords] = useState([]); 
+  const [loading, setLoading] = useState(true); 
+  const [refreshing, setRefreshing] = useState(false); 
 
-  // Estados para filtros y búsqueda
-  const [searchQuery, setSearchQuery] = useState(''); // Texto de búsqueda
-  const [sortField, setSortField] = useState('date'); // Campo por el que ordenar
-  const [sortOrder, setSortOrder] = useState('desc'); // Orden: 'asc' o 'desc'
-  const [showFilters, setShowFilters] = useState(false); // Mostrar/ocultar panel de filtros
+  const [searchQuery, setSearchQuery] = useState(''); 
+  const [sortField, setSortField] = useState('date'); 
+  const [sortOrder, setSortOrder] = useState('desc'); 
+  const [showFilters, setShowFilters] = useState(false); 
 
-  // Estados para UI
-  const [selectedRecord, setSelectedRecord] = useState(null); // ID del registro expandido
-  const [notification, setNotification] = useState(null); // Notificación temporal
+  const [selectedRecord, setSelectedRecord] = useState(null); 
+  const [notification, setNotification] = useState(null); 
 
-  /**
-   * Función para cargar el historial de ganancias desde Supabase
-   * 
-   * Obtiene todos los registros del usuario actual ordenados por fecha
-   * y maneja los estados de carga y error
-   */
+   // Para cargar el historial de ganancias desde Supabase
   const loadEarningsHistory = useCallback(async () => {
     if (!user) return;
 
@@ -68,36 +48,24 @@ const HistoryScreen = () => {
     }
   }, [user]);
 
-  /**
-   * Efecto para cargar datos iniciales cuando el usuario está disponible
-   */
+
   useEffect(() => {
     if (user) {
       loadEarningsHistory();
     }
   }, [user, loadEarningsHistory]);
 
-  /**
-   * Efecto para filtrar y ordenar registros cuando cambian los criterios
-   */
+  //Para ordenar registros cuando cambian los criterios
   useEffect(() => {
     filterAndSortRecords();
   }, [records, searchQuery, sortField, sortOrder]);
 
-  /**
-   * Registrar función de refresco para uso desde otros componentes
-   * Esto permite que otros componentes actualicen el historial
-   */
+  //Registrar función de refresco para uso desde otros componentes (para que otros componentes actualicen el historial)
   useEffect(() => {
     setRefreshHistory(() => loadEarningsHistory);
   }, [setRefreshHistory, loadEarningsHistory]);
 
-  /**
-   * Función para mostrar notificaciones temporales
-   * 
-   * @param {string} type - Tipo de notificación ('success' o 'error')
-   * @param {string} message - Mensaje a mostrar
-   */
+  //Para mostrar notificaciones 
   const showNotification = (type, message) => {
     setNotification({ type, message });
     // Auto-ocultar después de 3 segundos
@@ -105,26 +73,11 @@ const HistoryScreen = () => {
   };
 
   /**
-   * Función para refrescar datos manualmente (pull-to-refresh)
-   */
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadEarningsHistory();
-    setRefreshing(false);
-  };
-
-  /**
    * Función para filtrar y ordenar registros según los criterios actuales
-   * 
-   * Aplica:
-   * 1. Filtro de búsqueda por texto
-   * 2. Ordenamiento por campo seleccionado
-   * 3. Dirección de ordenamiento (asc/desc)
    */
   const filterAndSortRecords = () => {
     let filtered = [...records];
 
-    // Aplicar filtro de búsqueda si hay texto
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(record => 
@@ -134,18 +87,15 @@ const HistoryScreen = () => {
       );
     }
 
-    // Aplicar ordenamiento
     filtered.sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
 
-      // Convertir fechas a timestamps para comparación numérica
       if (sortField === 'date') {
         aValue = new Date(aValue).getTime();
         bValue = new Date(bValue).getTime();
       }
 
-      // Aplicar dirección de ordenamiento
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
@@ -156,13 +106,8 @@ const HistoryScreen = () => {
     setFilteredRecords(filtered);
   };
 
-  /**
-   * Función para eliminar un registro específico
-   * 
-   * @param {string} recordId - ID del registro a eliminar
-   */
+ //Para eliminar un registro específico
   const deleteRecord = async (recordId) => {
-    // Confirmar eliminación con el usuario
     if (!window.confirm('¿Estás seguro de que quieres eliminar este registro?')) {
       return;
     }
@@ -178,9 +123,8 @@ const HistoryScreen = () => {
         throw error;
       }
 
-      // Actualizar estado local removiendo el registro
       setRecords(prev => prev.filter(record => record.id !== recordId));
-      setSelectedRecord(null); // Cerrar detalles si estaba abierto
+      setSelectedRecord(null); 
       showNotification('success', 'Registro eliminado correctamente');
     } catch (error) {
       console.error('Error eliminando registro:', error);
@@ -188,28 +132,9 @@ const HistoryScreen = () => {
     }
   };
 
-  /**
-   * Función para manejar el cambio de ordenamiento
-   * 
-   * @param {string} field - Campo por el que ordenar
-   */
-  const handleSort = (field) => {
-    if (sortField === field) {
-      // Si ya está ordenado por este campo, cambiar dirección
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      // Si es un campo nuevo, ordenar descendente por defecto
-      setSortField(field);
-      setSortOrder('desc');
-    }
-  };
+ 
 
-  /**
-   * Función para obtener el icono de ordenamiento apropiado
-   * 
-   * @param {string} field - Campo a verificar
-   * @returns {JSX.Element|null} - Icono de ordenamiento o null
-   */
+  //Función para obtener el icono de ordenamiento 
   const getSortIcon = (field) => {
     if (sortField !== field) return null;
     return sortOrder === 'asc' ? 
@@ -217,12 +142,6 @@ const HistoryScreen = () => {
       <ChevronDown size={16} className="text-blue-500" />;
   };
 
-  /**
-   * Función para formatear fechas en español
-   * 
-   * @param {string} dateString - Fecha en formato ISO
-   * @returns {string} - Fecha formateada
-   */
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       weekday: 'short',
@@ -232,21 +151,11 @@ const HistoryScreen = () => {
     });
   };
 
-  /**
-   * Función para formatear moneda argentina
-   * 
-   * @param {number} amount - Cantidad a formatear
-   * @returns {string} - Cantidad formateada como moneda
-   */
   const formatCurrency = (amount) => {
     return `$${amount.toFixed(2)}`;
   };
 
-  /**
-   * Función para calcular totales de los registros filtrados
-   * 
-   * @returns {Object} - Objeto con todos los totales calculados
-   */
+  //Calcular total de los registros filtrados
   const calculateTotals = () => {
     return filteredRecords.reduce((acc, record) => ({
       totalGross: acc.totalGross + record.gross_earnings,
