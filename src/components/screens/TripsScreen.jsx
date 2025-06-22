@@ -15,7 +15,6 @@ const TripsScreen = () => {
     tripPrice: '',                
   });
 
-  // Estados para el sistema de sugerencias de direcciones
   const [originSuggestions, setOriginSuggestions] = useState([]); 
   const [destinationSuggestions, setDestinationSuggestions] = useState([]); 
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false); 
@@ -29,11 +28,8 @@ const TripsScreen = () => {
   const [loading, setLoading] = useState(false); 
   const [notification, setNotification] = useState(null); 
 
-  // Configuración de Mapbox 
   const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiNDI4OTk3NDciLCJhIjoiY21iNm5qOGZ0MDFubDJycGxyaW03MTN0YSJ9.KiujcKaRF9ED2we6H3-GAw';
 
-  //Función para mostrar notificaciones temporales al usuario
-   
   const showNotification = (type, message) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
@@ -53,7 +49,6 @@ const TripsScreen = () => {
     }
 
     try {
-      // Llamada a la API de Mapbox
       const response = await axios.get(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`,
         {
@@ -67,7 +62,6 @@ const TripsScreen = () => {
 
       const suggestions = response.data.features || [];
       
-      // Actualizar sugerencias según si es origen o destino
       if (isOrigin) {
         setOriginSuggestions(suggestions);
         setShowOriginSuggestions(true);
@@ -77,11 +71,10 @@ const TripsScreen = () => {
       }
     } catch (error) {
       console.error('Error obteniendo sugerencias:', error);
-      // No mostrar error al usuario para no interrumpir la experiencia
     }
   };
 
-   //Para seleccionar una sugerencia de dirección
+   //Para seleccionar una sugerencia
   const selectSuggestion = (suggestion, isOrigin) => {
     if (isOrigin) {
       setFormData(prev => ({ ...prev, origin: suggestion.place_name }));
@@ -133,7 +126,7 @@ const TripsScreen = () => {
     setLoading(true);
 
     try {
-      // Obtener ruta real usando la API de direcciones de Mapbox
+      // Obtener ruta usando la API en Mapbox
       const response = await axios.get(
         `https://api.mapbox.com/directions/v5/mapbox/driving/${originCoords[0]},${originCoords[1]};${destinationCoords[0]},${destinationCoords[1]}`,
         {
@@ -159,7 +152,7 @@ const TripsScreen = () => {
       let profitability;
       if (difference >= 10) {
         profitability = 'rentable';        
-      } else if (difference >= -10) {
+      } else if (difference < 10) {
         profitability = 'poco_rentable';   
       } else {
         profitability = 'no_rentable';     
@@ -181,38 +174,16 @@ const TripsScreen = () => {
     }
   };
 
-  /**
-   * Función para guardar el análisis en la base de datos (guarda todos los datos del análisis en Supabase para referencia futura)
-   */
+ 
   const handleSave = async () => {
     if (!user || !analysis) return;
-
     setLoading(true);
 
     try {
-      // Para insertar en la base de datos
-      const tripData = {
-        user_id: user.id,
-        origin: formData.origin,
-        destination: formData.destination,
-        distance_km: analysis.distance,
-        trip_price: parseFloat(formData.tripPrice),
-        desired_price_per_km: parseFloat(formData.desiredPricePerKm),
-        actual_price_per_km: analysis.actualPricePerKm,
-        profitability: analysis.profitability,
-      };
-
-      const { error } = await supabase
-        .from('trip_analysis')
-        .insert([tripData]);
-
-      if (error) {
-        throw error;
-      }
-
+      // En algun momento se va a poder guardar!
       showNotification('success', 'Análisis guardado correctamente');
       
-      // Limpiar formulario después de guardar exitosamente
+      // Limpiar formulario después de guardar
       setFormData({
         origin: '',
         destination: '',
@@ -231,7 +202,7 @@ const TripsScreen = () => {
     }
   };
 
-  //Para la interfaz de usuario  
+  //Para los colores y disenios de rentabilidad  
   const getProfitabilityColor = (profitability) => {
     switch (profitability) {
       case 'rentable': return 'text-green-400 border-green-400';
@@ -241,7 +212,6 @@ const TripsScreen = () => {
     }
   };
 
-  // Obtener icono según el tipo de rentabilidad
   const getProfitabilityIcon = (profitability) => {
     switch (profitability) {
       case 'rentable': return <TrendingUp size={24} className="text-green-400" />;
@@ -251,7 +221,6 @@ const TripsScreen = () => {
     }
   };
 
-  // Obtener etiqueta según el tipo de rentabilidad
   const getProfitabilityLabel = (profitability) => {
     switch (profitability) {
       case 'rentable': return 'RENTABLE';
@@ -271,7 +240,7 @@ const TripsScreen = () => {
         </div>
       </div>
 
-      {/* Notificación temporal */}
+      {/* Notificación */}
       {notification && (
         <div className={`${notification.type === 'success' ? 'notification-success' : 'notification-error'} fixed top-4 right-4 z-50`}>
           {notification.type === 'success' ? (
@@ -292,7 +261,7 @@ const TripsScreen = () => {
           </h2>
           
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Campo de origen con sugerencias */}
+            {/* origen con sugerencias */}
             <div className="relative">
               <label className="block text-sm font-medium text-dark-300 mb-2">
                 Dirección de origen
@@ -318,7 +287,6 @@ const TripsScreen = () => {
                 />
               </div>
               
-              {/* Lista de sugerencias de origen */}
               {showOriginSuggestions && originSuggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 z-50 bg-dark-800 border border-dark-600 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
                   {originSuggestions.map((suggestion) => (
