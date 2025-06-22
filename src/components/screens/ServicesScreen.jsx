@@ -3,51 +3,27 @@ import { Settings, Calendar, Gauge, CheckCircle, AlertCircle, Trash2 } from 'luc
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 
-/**
- * Pantalla de Registro de Servicios del Vehículo
- * 
- * Esta pantalla permite a los usuarios:
- * - Registrar servicios realizados al vehículo
- * - Hacer seguimiento de próximos servicios
- * - Recibir recordatorios basados en fecha o kilometraje
- * - Gestionar diferentes tipos de servicios (VTV, aceite, frenos, etc.)
- * 
- * Funcionalidades principales:
- * - Formulario de registro de servicios
- * - Cálculo automático de próximos servicios
- * - Lista de servicios programados
- * - Alertas de servicios próximos a vencer
- * - Interfaz responsive con Tailwind CSS
- */
+
 const ServicesScreen = () => {
-  // Obtener usuario autenticado del contexto
   const { user } = useAuth();
 
-  // Estados del formulario de registro
-  const [currentMileage, setCurrentMileage] = useState(''); // Kilometraje actual del vehículo
-  const [selectedServices, setSelectedServices] = useState([]); // Servicios seleccionados para registrar
+  const [currentMileage, setCurrentMileage] = useState(''); 
+  const [selectedServices, setSelectedServices] = useState([]); 
 
-  // Estados de datos
-  const [upcomingServices, setUpcomingServices] = useState([]); // Lista de servicios programados
+  const [upcomingServices, setUpcomingServices] = useState([]); 
 
-  // Estados de UI
-  const [loading, setLoading] = useState(false); // Estado de carga para operaciones async
-  const [notification, setNotification] = useState(null); // Notificación temporal
+  const [loading, setLoading] = useState(false); 
+  const [notification, setNotification] = useState(null); 
 
   /**
-   * Configuración de tipos de servicios disponibles
-   * 
-   * Cada servicio tiene reglas diferentes para calcular el próximo mantenimiento:
-   * - rule: 'years' para servicios basados en tiempo
-   * - rule: 'km' para servicios basados en kilometraje
-   * - value: cantidad de años o kilómetros para el próximo servicio
+   * Configuración de tipos de servicios disponibles (cada servicio tiene reglas diferentes para calcular el próximo mantenimiento)
    */
   const SERVICE_TYPES = [
     { 
       key: 'vtv', 
       label: 'VTV (Verificación Técnica Vehicular)', 
-      rule: 'years',  // Se renueva cada cierto tiempo
-      value: 2,       // Cada 2 años
+      rule: 'years',  
+      value: 2,       
       icon: CheckCircle,
       color: 'text-blue-500',
       description: 'Inspección técnica obligatoria del vehículo'
@@ -55,8 +31,8 @@ const ServicesScreen = () => {
     { 
       key: 'oil_change', 
       label: 'Cambio de aceite y filtros', 
-      rule: 'km',     // Se cambia cada ciertos kilómetros
-      value: 10000,   // Cada 10,000 km
+      rule: 'km',     
+      value: 10000,   
       icon: Gauge,
       color: 'text-green-500',
       description: 'Mantenimiento del motor y sistema de lubricación'
@@ -65,7 +41,7 @@ const ServicesScreen = () => {
       key: 'timing_belt', 
       label: 'Cambio de correa de distribución', 
       rule: 'km', 
-      value: 70000,   // Cada 70,000 km
+      value: 70000,   
       icon: Settings,
       color: 'text-orange-500',
       description: 'Componente crítico del motor'
@@ -74,7 +50,7 @@ const ServicesScreen = () => {
       key: 'brakes', 
       label: 'Cambio de pastillas de freno', 
       rule: 'km', 
-      value: 40000,   // Cada 40,000 km
+      value: 40000,  
       icon: AlertCircle,
       color: 'text-red-500',
       description: 'Sistema de seguridad del vehículo'
@@ -92,9 +68,6 @@ const ServicesScreen = () => {
 
   /**
    * Función para mostrar notificaciones temporales
-   * 
-   * @param {string} type - Tipo de notificación ('success' o 'error')
-   * @param {string} message - Mensaje a mostrar
    */
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -103,9 +76,6 @@ const ServicesScreen = () => {
 
   /**
    * Función para cargar servicios desde la base de datos
-   * 
-   * Obtiene todos los servicios registrados por el usuario
-   * ordenados por fecha de creación (más recientes primero)
    */
   const loadUpcomingServices = async () => {
     if (!user) return;
@@ -130,24 +100,17 @@ const ServicesScreen = () => {
 
   /**
    * Función para alternar la selección de servicios en el formulario
-   * 
-   * @param {string} serviceKey - Clave del servicio a alternar
    */
   const toggleService = (serviceKey) => {
     setSelectedServices(prev => 
       prev.includes(serviceKey)
-        ? prev.filter(s => s !== serviceKey)  // Quitar si ya está seleccionado
-        : [...prev, serviceKey]               // Agregar si no está seleccionado
+        ? prev.filter(s => s !== serviceKey)  
+        : [...prev, serviceKey]               
     );
   };
 
   /**
    * Función para calcular el próximo servicio basado en las reglas
-   * 
-   * @param {string} serviceType - Tipo de servicio
-   * @param {number} currentMileage - Kilometraje actual
-   * @param {string} serviceDate - Fecha del servicio actual
-   * @returns {Object} - Objeto con la fecha o kilometraje del próximo servicio
    */
   const calculateNextService = (serviceType, currentMileage, serviceDate) => {
     const service = SERVICE_TYPES.find(s => s.key === serviceType);
@@ -166,11 +129,6 @@ const ServicesScreen = () => {
 
   /**
    * Función para guardar los servicios seleccionados en la base de datos
-   * 
-   * Para cada servicio seleccionado:
-   * 1. Calcula el próximo servicio
-   * 2. Verifica si ya existe un registro
-   * 3. Actualiza o crea el registro según corresponda
    */
   const handleSave = async () => {
     // Validaciones previas
@@ -185,11 +143,9 @@ const ServicesScreen = () => {
     const currentDate = new Date().toISOString().split('T')[0];
 
     try {
-      // Procesar cada servicio seleccionado
       for (const serviceType of selectedServices) {
         const nextService = calculateNextService(serviceType, mileage, currentDate);
         
-        // Verificar si ya existe un registro para este tipo de servicio
         const { data: existingService } = await supabase
           .from('service_records')
           .select('id')
@@ -242,8 +198,6 @@ const ServicesScreen = () => {
 
   /**
    * Función para eliminar un servicio de la base de datos
-   * 
-   * @param {string} serviceId - ID del servicio a eliminar
    */
   const deleteService = async (serviceId) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este servicio?')) {
@@ -270,9 +224,6 @@ const ServicesScreen = () => {
 
   /**
    * Función para verificar si un servicio está próximo a vencer
-   * 
-   * @param {Object} service - Registro de servicio
-   * @returns {boolean} - True si está próximo a vencer
    */
   const isServiceDue = (service) => {
     const today = new Date();
@@ -287,7 +238,7 @@ const ServicesScreen = () => {
     if (service.next_service_mileage && currentMileage) {
       // Para servicios basados en kilometraje
       const currentKm = parseFloat(currentMileage);
-      return currentKm >= (service.next_service_mileage - 1000); // Próximo si faltan 1000 km o menos
+      return currentKm >= (service.next_service_mileage - 1000); 
     }
     
     return false;
@@ -295,9 +246,6 @@ const ServicesScreen = () => {
 
   /**
    * Función para obtener el componente de icono de un tipo de servicio
-   * 
-   * @param {string} serviceType - Tipo de servicio
-   * @returns {JSX.Element} - Componente de icono
    */
   const getServiceIcon = (serviceType) => {
     const service = SERVICE_TYPES.find(s => s.key === serviceType);

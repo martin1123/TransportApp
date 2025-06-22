@@ -14,25 +14,20 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }) => {
-  // Estados del contexto
   const [user, setUser] = useState(null)           
-  const [session, setSession] = useState(null)     
+  const [session, setSupabaseSession] = useState(null)     
   const [loading, setLoading] = useState(true)     
 
-  /**
-   * Onicializar la autenticación y escuchar cambios
-   */
+ 
   useEffect(() => {
-    // Función para obtener la sesión inicial
     const getInitialSession = async () => {
       try {
-        // Obtener sesión actual de Supabase
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
           console.error('Error obteniendo sesión:', error)
         } else {
-          setSession(session)
+          setSupabaseSession(session)
           setUser(session?.user ?? null)
         }
       } catch (error) {
@@ -48,7 +43,7 @@ export const AuthProvider = ({ children }) => {
       async (event, session) => {
         console.log('Cambio de estado de auth:', event, session?.user?.email)
         
-        setSession(session)
+        setSupabaseSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
       }
@@ -74,7 +69,7 @@ export const AuthProvider = ({ children }) => {
 
       // Si hay datos de sesión, actualizar estados
       if (data.session) {
-        setSession(data.session)
+        setSupabaseSession(data.session)
         setUser(data.session.user)
       }
 
@@ -123,7 +118,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Limpiar estados locales
-      setSession(null)
+      setSupabaseSession(null)
       setUser(null)
 
       return { error: null }

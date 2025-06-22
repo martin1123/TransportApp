@@ -8,7 +8,6 @@ const TripsScreen = () => {
   // Obtener usuario autenticado del contexto
   const { user } = useAuth();
 
-  // Estados del formulario principal
   const [formData, setFormData] = useState({
     origin: '',                   
     destination: '',              
@@ -17,48 +16,31 @@ const TripsScreen = () => {
   });
 
   // Estados para el sistema de sugerencias de direcciones
-  const [originSuggestions, setOriginSuggestions] = useState([]); // Lista de sugerencias para origen
-  const [destinationSuggestions, setDestinationSuggestions] = useState([]); // Lista de sugerencias para destino
-  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false); // Controla visibilidad de sugerencias origen
-  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false); // Controla visibilidad de sugerencias destino
+  const [originSuggestions, setOriginSuggestions] = useState([]); 
+  const [destinationSuggestions, setDestinationSuggestions] = useState([]); 
+  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false); 
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false); 
 
-  // Estados para coordenadas geográficas seleccionadas
-  const [originCoords, setOriginCoords] = useState(null); // [longitud, latitud] del origen
-  const [destinationCoords, setDestinationCoords] = useState(null); // [longitud, latitud] del destino
+  const [originCoords, setOriginCoords] = useState(null); 
+  const [destinationCoords, setDestinationCoords] = useState(null); 
 
-  // Estados para análisis de rentabilidad
-  const [analysis, setAnalysis] = useState(null); // Resultado del análisis de rentabilidad
+  const [analysis, setAnalysis] = useState(null); 
 
-  // Estados de UI y control
-  const [loading, setLoading] = useState(false); // Estado de carga para operaciones async
-  const [notification, setNotification] = useState(null); // Notificación temporal para el usuario
+  const [loading, setLoading] = useState(false); 
+  const [notification, setNotification] = useState(null); 
 
-  // Configuración de Mapbox (servicio de mapas y geocodificación)
+  // Configuración de Mapbox 
   const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiNDI4OTk3NDciLCJhIjoiY21iNm5qOGZ0MDFubDJycGxyaW03MTN0YSJ9.KiujcKaRF9ED2we6H3-GAw';
 
-  /**
-   * Función para mostrar notificaciones temporales al usuario
-   * 
-   * @param {string} type - Tipo de notificación ('success' o 'error')
-   * @param {string} message - Mensaje a mostrar al usuario
-   */
+  //Función para mostrar notificaciones temporales al usuario
+   
   const showNotification = (type, message) => {
     setNotification({ type, message });
-    // Auto-ocultar la notificación después de 3 segundos
     setTimeout(() => setNotification(null), 3000);
   };
 
-  /**
-   * Función para buscar sugerencias de direcciones usando la API de Mapbox
-   * 
-   * Esta función realiza geocodificación inversa para convertir texto en direcciones
-   * válidas con coordenadas geográficas
-   * 
-   * @param {string} query - Texto de búsqueda ingresado por el usuario
-   * @param {boolean} isOrigin - Si es para origen (true) o destino (false)
-   */
+  // Para buscar sugerencias de direcciones usando la API de Mapbox
   const fetchSuggestions = async (query, isOrigin) => {
-    // No buscar si el texto es muy corto para evitar demasiadas consultas
     if (query.length < 3) {
       if (isOrigin) {
         setOriginSuggestions([]);
@@ -71,14 +53,14 @@ const TripsScreen = () => {
     }
 
     try {
-      // Llamada a la API de geocodificación de Mapbox
+      // Llamada a la API de Mapbox
       const response = await axios.get(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`,
         {
           params: {
             access_token: MAPBOX_ACCESS_TOKEN,
-            country: 'ar', // Limitar búsqueda a Argentina
-            limit: 5,     // Máximo 5 sugerencias para no saturar la UI
+            country: 'ar', 
+            limit: 5,     
           },
         }
       );
@@ -99,17 +81,7 @@ const TripsScreen = () => {
     }
   };
 
-  /**
-   * Función para seleccionar una sugerencia de dirección
-   * 
-   * Cuando el usuario hace clic en una sugerencia, esta función:
-   * 1. Actualiza el campo de texto con la dirección completa
-   * 2. Guarda las coordenadas para cálculos posteriores
-   * 3. Oculta la lista de sugerencias
-   * 
-   * @param {Object} suggestion - Sugerencia seleccionada de Mapbox
-   * @param {boolean} isOrigin - Si es para origen o destino
-   */
+   //Para seleccionar una sugerencia de dirección
   const selectSuggestion = (suggestion, isOrigin) => {
     if (isOrigin) {
       setFormData(prev => ({ ...prev, origin: suggestion.place_name }));
@@ -124,37 +96,22 @@ const TripsScreen = () => {
     }
   };
 
-  /**
-   * Función para manejar cambios en los inputs del formulario
-   * 
-   * @param {Event} e - Evento del input
-   */
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Buscar sugerencias automáticamente para campos de dirección
     if (name === 'origin') {
       fetchSuggestions(value, true);
     } else if (name === 'destination') {
       fetchSuggestions(value, false);
     }
     
-    // Limpiar notificación cuando el usuario empiece a escribir
     if (notification) setNotification(null);
   };
 
-  /**
-   * Función principal para calcular la rentabilidad del viaje
-   * 
-   * Esta función:
-   * 1. Valida que se hayan seleccionado direcciones válidas
-   * 2. Calcula la ruta real usando Mapbox Directions API
-   * 3. Analiza la rentabilidad comparando precios
-   * 4. Clasifica el viaje como rentable, poco rentable o no rentable
-   */
+  //Calcular la rentabilidad del viaje
   const calculateProfitability = async () => {
-    // Validaciones previas
     if (!originCoords || !destinationCoords) {
       showNotification('error', 'Por favor selecciona origen y destino válidos de las sugerencias');
       return;
@@ -194,18 +151,18 @@ const TripsScreen = () => {
       }
 
       const route = response.data.routes[0];
-      const distanceKm = route.distance / 1000; // Convertir metros a kilómetros
+      const distanceKm = route.distance / 1000; 
       const actualPricePerKm = tripPrice / distanceKm;
       const difference = ((actualPricePerKm - desiredPricePerKm) / desiredPricePerKm) * 100;
 
-      // Determinar rentabilidad basada en la diferencia porcentual
+      // Determinar rentabilidad
       let profitability;
       if (difference >= 10) {
-        profitability = 'rentable';        // Más del 10% por encima del precio deseado
+        profitability = 'rentable';        
       } else if (difference >= -10) {
-        profitability = 'poco_rentable';   // Entre -10% y +10% del precio deseado
+        profitability = 'poco_rentable';   
       } else {
-        profitability = 'no_rentable';     // Más del 10% por debajo del precio deseado
+        profitability = 'no_rentable';     
       }
 
       // Actualizar estado con el análisis completo
@@ -225,9 +182,7 @@ const TripsScreen = () => {
   };
 
   /**
-   * Función para guardar el análisis en la base de datos
-   * 
-   * Guarda todos los datos del análisis en Supabase para referencia futura
+   * Función para guardar el análisis en la base de datos (guarda todos los datos del análisis en Supabase para referencia futura)
    */
   const handleSave = async () => {
     if (!user || !analysis) return;
@@ -235,7 +190,7 @@ const TripsScreen = () => {
     setLoading(true);
 
     try {
-      // Preparar datos para insertar en la base de datos
+      // Para insertar en la base de datos
       const tripData = {
         user_id: user.id,
         origin: formData.origin,
@@ -247,7 +202,6 @@ const TripsScreen = () => {
         profitability: analysis.profitability,
       };
 
-      // Insertar en la base de datos
       const { error } = await supabase
         .from('trip_analysis')
         .insert([tripData]);
@@ -277,11 +231,7 @@ const TripsScreen = () => {
     }
   };
 
-  /**
-   * Funciones helper para la interfaz de usuario
-   */
-  
-  // Obtener color según el tipo de rentabilidad
+  //Para la interfaz de usuario  
   const getProfitabilityColor = (profitability) => {
     switch (profitability) {
       case 'rentable': return 'text-green-400 border-green-400';
