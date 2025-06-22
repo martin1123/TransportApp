@@ -18,31 +18,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
-/**
- * Función helper para realizar consultas con manejo de errores
- * 
- * @param {Function} queryFn - Función que realiza la consulta a Supabase
- * @returns {Object} - Objeto con data y error
- */
-export const executeQuery = async (queryFn) => {
-  try {
-    const result = await queryFn()
-    
-    if (result.error) {
-      return {
-        data: null,
-        error: "Error al ejecutar la consulta: " + result.error.message
-      }
-    }
-    
-    return {
-      data: result.data,
-      error: null
-    }
-  } catch (error) {
-    return {
-      data: null,
-      error: "Error inesperado: " + error.message
-    }
-  }
-}
