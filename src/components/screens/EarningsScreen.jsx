@@ -1,418 +1,222 @@
 import React, { useState, useEffect } from 'react'
-import { DollarSign, TrendingUp, Calculator, Save } from 'lucide-react'
+import { DollarSign, Calculator, Save } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useEarnings } from '@/context/EarningsContext'
 import { supabase } from '@/lib/supabase'
 
-/**
- * Pantalla de Registro de Ganancias
- * Permite a los usuarios registrar sus ganancias diarias y calcular métricas automáticamente
- * 
- * Funcionalidades:
- * - Formulario de entrada de datos de ganancias
- * - Cálculo automático de métricas (por km, hora, viaje)
- * - Validación de campos obligatorios
- * - Guardado en base de datos
- * - Notificaciones de éxito/error
- * - Limpieza automática del formulario
- * - Diseño responsive y atractivo
- */
+// Estado inicial del formulario
+const formularioInicial = {
+  gananciasTotales: '', viajesRealizados: '', kilometrosRecorridos: '', horasTrabajadas: '',
+  propinas: '', extras: '', gastoCombustible: '', gastosVarios: ''
+}
+// Campos obligatorios para validación
+const camposRequeridos = ['gananciasTotales', 'viajesRealizados', 'kilometrosRecorridos', 'horasTrabajadas']
+
+// Definición de los campos del formulario
+const campos = [
+  { name: 'gananciasTotales', label: 'Ganancias Totales *', placeholder: '0.00', step: '0.01', required: true },
+  { name: 'viajesRealizados', label: 'Viajes Realizados *', placeholder: '0', step: '1', required: true },
+  { name: 'kilometrosRecorridos', label: 'Kilómetros Recorridos *', placeholder: '0.0', step: '0.1', required: true },
+  { name: 'horasTrabajadas', label: 'Horas Trabajadas *', placeholder: '0.0', step: '0.1', required: true },
+  { name: 'propinas', label: 'Propinas', placeholder: '0.00', step: '0.01' },
+  { name: 'extras', label: 'Extras', placeholder: '0.00', step: '0.01' },
+  { name: 'gastoCombustible', label: 'Gasto en Combustible', placeholder: '0.00', step: '0.01' },
+  { name: 'gastosVarios', label: 'Gastos Varios', placeholder: '0.00', step: '0.01' },
+]
+
 const EarningsScreen = () => {
-  // Obtener usuario autenticado y función de refresco
+  // Hooks de contexto y estados locales
   const { user } = useAuth()
   const { refreshHistory } = useEarnings()
+  const [datosFormulario, setDatosFormulario] = useState(formularioInicial)
+  const [calculos, setCalculos] = useState({})
+  const [cargando, setCargando] = useState(false)
+  const [notificacion, setNotificacion] = useState(null)
 
-  // Estados del formulario de datos de entrada
-  const [formData, setFormData] = useState({
-    totalEarnings: '',      // Ganancias totales del día
-    tripsCompleted: '',     // Número de viajes realizados
-    kilometersDriver: '',   // Kilómetros recorridos
-    hoursWorked: '',        // Horas trabajadas
-    tips: '',               // Propinas recibidas
-    extras: '',             // Ingresos extras
-    fuelCost: '',           // Gasto en combustible
-    otherExpenses: '',      // Otros gastos
-  })
-
-  // Estados para cálculos automáticos
-  const [calculations, setCalculations] = useState({
-    grossEarnings: 0,       // Ganancias brutas (total + propinas + extras)
-    grossPerKm: 0,          // Ganancia bruta por kilómetro
-    grossPerHour: 0,        // Ganancia bruta por hora
-    grossPerTrip: 0,        // Ganancia bruta por viaje
-    totalExpenses: 0,       // Total de gastos
-    netEarnings: 0,         // Ganancias netas (brutas - gastos)
-    netPerKm: 0,            // Ganancia neta por kilómetro
-    netPerHour: 0,          // Ganancia neta por hora
-    netPerTrip: 0,          // Ganancia neta por viaje
-  })
-
-  // Estados de UI
-  const [loading, setLoading] = useState(false)
-  const [notification, setNotification] = useState(null)
-
-  /**
-   * Efecto para recalcular métricas cuando cambian los datos del formulario
-   */
+  // Efecto para recalcular los valores automáticos cada vez que cambia el formulario
   useEffect(() => {
-    calculateValues()
-  }, [formData])
-
-  /**
-   * Función para mostrar notificaciones temporales
-   * @param {string} type - Tipo de notificación ('success' o 'error')
-   * @param {string} message - Mensaje a mostrar
-   */
-  const showNotification = (type, message) => {
-    setNotification({ type, message })
-    setTimeout(() => setNotification(null), 3000)
-  }
-
-  /**
-   * Función para calcular todas las métricas automáticamente
-   * Se ejecuta cada vez que cambian los datos del formulario
-   */
-  const calculateValues = () => {
-    // Convertir strings a números, usar 0 si está vacío o no es válido
-    const totalEarnings = parseFloat(formData.totalEarnings) || 0
-    const tripsCompleted = parseFloat(formData.tripsCompleted) || 0
-    const kilometersDriver = parseFloat(formData.kilometersDriver) || 0
-    const hoursWorked = parseFloat(formData.hoursWorked) || 0
-    const tips = parseFloat(formData.tips) || 0
-    const extras = parseFloat(formData.extras) || 0
-    const fuelCost = parseFloat(formData.fuelCost) || 0
-    const otherExpenses = parseFloat(formData.otherExpenses) || 0
-
-    // Calcular ganancias brutas (ingresos totales)
-    const grossEarnings = totalEarnings + tips + extras
-    
-    // Calcular gastos totales
-    const totalExpenses = fuelCost + otherExpenses
-    
-    // Calcular ganancias netas (brutas menos gastos)
-    const netEarnings = grossEarnings - totalExpenses
-
-    // Actualizar estado con todos los cálculos
-    setCalculations({
-      grossEarnings,
-      grossPerKm: kilometersDriver > 0 ? grossEarnings / kilometersDriver : 0,
-      grossPerHour: hoursWorked > 0 ? grossEarnings / hoursWorked : 0,
-      grossPerTrip: tripsCompleted > 0 ? grossEarnings / tripsCompleted : 0,
-      totalExpenses,
-      netEarnings,
-      netPerKm: kilometersDriver > 0 ? netEarnings / kilometersDriver : 0,
-      netPerHour: hoursWorked > 0 ? netEarnings / hoursWorked : 0,
-      netPerTrip: tripsCompleted > 0 ? netEarnings / tripsCompleted : 0,
-    })
-  }
-
-  /**
-   * Función para manejar cambios en los inputs del formulario
-   * @param {Event} e - Evento del input
-   */
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-    // Limpiar notificación cuando el usuario empiece a escribir
-    if (notification) setNotification(null)
-  }
-
-  /**
-   * Función para guardar el registro en la base de datos
-   */
-  const handleSave = async () => {
-    if (!user) return
-
-    // Validar campos obligatorios
-    const requiredFields = ['totalEarnings', 'tripsCompleted', 'kilometersDriver', 'hoursWorked']
-    const missingFields = requiredFields.filter(field => !formData[field])
-
-    if (missingFields.length > 0) {
-      showNotification('error', 'Por favor completa todos los campos obligatorios')
-      return
+    const f = {
+      gananciasTotales: parseFloat(datosFormulario.gananciasTotales) || 0,
+      viajesRealizados: parseFloat(datosFormulario.viajesRealizados) || 0,
+      kilometrosRecorridos: parseFloat(datosFormulario.kilometrosRecorridos) || 0,
+      horasTrabajadas: parseFloat(datosFormulario.horasTrabajadas) || 0,
+      propinas: parseFloat(datosFormulario.propinas) || 0,
+      extras: parseFloat(datosFormulario.extras) || 0,
+      gastoCombustible: parseFloat(datosFormulario.gastoCombustible) || 0,
+      gastosVarios: parseFloat(datosFormulario.gastosVarios) || 0,
     }
+    // Cálculos automáticos de ganancias y gastos
+    const gananciasBrutas = f.gananciasTotales + f.propinas + f.extras
+    const gastosTotales = f.gastoCombustible + f.gastosVarios
+    const gananciasNetas = gananciasBrutas - gastosTotales
+    setCalculos({
+      gananciasBrutas,
+      brutasPorKm: f.kilometrosRecorridos ? gananciasBrutas / f.kilometrosRecorridos : 0,
+      brutasPorHora: f.horasTrabajadas ? gananciasBrutas / f.horasTrabajadas : 0,
+      brutasPorViaje: f.viajesRealizados ? gananciasBrutas / f.viajesRealizados : 0,
+      gastosTotales,
+      gananciasNetas,
+      netasPorKm: f.kilometrosRecorridos ? gananciasNetas / f.kilometrosRecorridos : 0,
+      netasPorHora: f.horasTrabajadas ? gananciasNetas / f.horasTrabajadas : 0,
+      netasPorViaje: f.viajesRealizados ? gananciasNetas / f.viajesRealizados : 0,
+    })
+  }, [datosFormulario])
 
-    setLoading(true)
+  // Muestra una notificación temporal
+  const mostrarNotificacion = (tipo, mensaje) => {
+    setNotificacion({ tipo, mensaje })
+    setTimeout(() => setNotificacion(null), 3000)
+  }
 
+  // Maneja los cambios en los inputs del formulario
+  const manejarCambioInput = e => {
+    const { name, value } = e.target
+    setDatosFormulario(prev => ({ ...prev, [name]: value }))
+    if (notificacion) setNotificacion(null)
+  }
+
+  // Guarda los datos en la base de datos (Supabase)
+  const manejarGuardar = async () => {
+    if (!user) return
+    // Valida campos obligatorios
+    const faltantes = camposRequeridos.filter(f => !datosFormulario[f])
+    if (faltantes.length) return mostrarNotificacion('error', 'Por favor completa todos los campos obligatorios')
+    setCargando(true)
     try {
-      // Preparar datos para insertar en la base de datos
+      // Mapeo de variables en español a las columnas de supabase
+      const f = {
+        gananciasTotales: parseFloat(datosFormulario.gananciasTotales) || 0,
+        viajesRealizados: parseFloat(datosFormulario.viajesRealizados) || 0,
+        kilometrosRecorridos: parseFloat(datosFormulario.kilometrosRecorridos) || 0,
+        horasTrabajadas: parseFloat(datosFormulario.horasTrabajadas) || 0,
+        propinas: parseFloat(datosFormulario.propinas) || 0,
+        extras: parseFloat(datosFormulario.extras) || 0,
+        gastoCombustible: parseFloat(datosFormulario.gastoCombustible) || 0,
+        gastosVarios: parseFloat(datosFormulario.gastosVarios) || 0,
+      }
+      // Construye el objeto para guardar en la base de datos
       const earningsData = {
         user_id: user.id,
-        date: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
-        total_earnings: parseFloat(formData.totalEarnings),
-        trips_completed: parseInt(formData.tripsCompleted),
-        kilometers_driven: parseFloat(formData.kilometersDriver),
-        hours_worked: parseFloat(formData.hoursWorked),
-        tips: parseFloat(formData.tips) || 0,
-        extras: parseFloat(formData.extras) || 0,
-        fuel_cost: parseFloat(formData.fuelCost) || 0,
-        other_expenses: parseFloat(formData.otherExpenses) || 0,
-        // Incluir cálculos automáticos
-        gross_earnings: calculations.grossEarnings,
-        gross_per_km: calculations.grossPerKm,
-        gross_per_hour: calculations.grossPerHour,
-        gross_per_trip: calculations.grossPerTrip,
-        total_expenses: calculations.totalExpenses,
-        net_earnings: calculations.netEarnings,
-        net_per_km: calculations.netPerKm,
-        net_per_hour: calculations.netPerHour,
-        net_per_trip: calculations.netPerTrip,
+        date: new Date().toISOString().split('T')[0],
+        total_earnings: f.gananciasTotales,
+        trips_completed: f.viajesRealizados,
+        kilometers_driven: f.kilometrosRecorridos,
+        hours_worked: f.horasTrabajadas,
+        tips: f.propinas,
+        extras: f.extras,
+        fuel_cost: f.gastoCombustible,
+        other_expenses: f.gastosVarios,
+        gross_earnings: calculos.gananciasBrutas,
+        gross_per_km: calculos.brutasPorKm,
+        gross_per_hour: calculos.brutasPorHora,
+        gross_per_trip: calculos.brutasPorViaje,
+        total_expenses: calculos.gastosTotales,
+        net_earnings: calculos.gananciasNetas,
+        net_per_km: calculos.netasPorKm,
+        net_per_hour: calculos.netasPorHora,
+        net_per_trip: calculos.netasPorViaje,
       }
-
-      // Insertar en la base de datos
-      const { error } = await supabase
-        .from('earnings_records')
-        .insert([earningsData])
-
-      if (error) {
-        throw error
-      }
-
-      // Mostrar mensaje de éxito
-      showNotification('success', 'Registro guardado correctamente')
-      
-      // Limpiar formulario
-      setFormData({
-        totalEarnings: '',
-        tripsCompleted: '',
-        kilometersDriver: '',
-        hoursWorked: '',
-        tips: '',
-        extras: '',
-        fuelCost: '',
-        otherExpenses: '',
-      })
-
-      // Refrescar historial en tiempo real
+      // Inserta el registro en la tabla de supabase
+      const { error } = await supabase.from('earnings_records').insert([earningsData])
+      if (error) throw error
+      mostrarNotificacion('success', 'Registro guardado correctamente')
+      setDatosFormulario(formularioInicial)
       refreshHistory()
-
     } catch (error) {
-      console.error('Error guardando registro:', error)
-      showNotification('error', 'No se pudo guardar el registro')
+      mostrarNotificacion('error', 'No se pudo guardar el registro')
     } finally {
-      setLoading(false)
+      setCargando(false)
     }
   }
 
+  // Renderizado del componente principal
   return (
     <div className="p-4 lg:p-6 max-w-7xl mx-auto">
-      {/* Header de la pantalla */}
+      {/* Encabezado */}
       <div className="flex items-center justify-between mb-6 lg:mb-8 pb-4 border-b border-dark-700">
         <div className="flex items-center gap-3">
           <DollarSign size={28} className="text-primary-500" />
           <h1 className="text-2xl lg:text-3xl font-bold text-white">Registro de Ganancias</h1>
         </div>
       </div>
-
-      {/* Notificación */}
-      {notification && (
-        <div className={`${notification.type === 'success' ? 'notification-success' : 'notification-error'} mb-6`}>
-          <span>{notification.message}</span>
+      {/* Notificación de éxito o error */}
+      {notificacion && (
+        <div className={`${notificacion.tipo === 'success' ? 'notification-success' : 'notification-error'} mb-6`}>
+          <span>{notificacion.mensaje}</span>
         </div>
       )}
-
       <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
-        {/* Sección de datos de entrada */}
+        {/* Formulario de entrada de datos */}
         <div className="card">
           <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-            <DollarSign size={20} className="text-primary-500" />
-            Datos de Entrada
+            <DollarSign size={20} className="text-primary-500" /> Datos de Entrada
           </h2>
-          
           <div className="grid gap-4">
-            {/* Ganancias Totales */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Ganancias Totales *
-              </label>
-              <input
-                type="number"
-                name="totalEarnings"
-                value={formData.totalEarnings}
-                onChange={handleInputChange}
-                placeholder="0.00"
-                className="input-field w-full"
-                step="0.01"
-                min="0"
-              />
-            </div>
-
-            {/* Viajes Realizados */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Viajes Realizados *
-              </label>
-              <input
-                type="number"
-                name="tripsCompleted"
-                value={formData.tripsCompleted}
-                onChange={handleInputChange}
-                placeholder="0"
-                className="input-field w-full"
-                min="0"
-              />
-            </div>
-
-            {/* Kilómetros Recorridos */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Kilómetros Recorridos *
-              </label>
-              <input
-                type="number"
-                name="kilometersDriver"
-                value={formData.kilometersDriver}
-                onChange={handleInputChange}
-                placeholder="0.0"
-                className="input-field w-full"
-                step="0.1"
-                min="0"
-              />
-            </div>
-
-            {/* Horas Trabajadas */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Horas Trabajadas *
-              </label>
-              <input
-                type="number"
-                name="hoursWorked"
-                value={formData.hoursWorked}
-                onChange={handleInputChange}
-                placeholder="0.0"
-                className="input-field w-full"
-                step="0.1"
-                min="0"
-              />
-            </div>
-
-            {/* Propinas */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Propinas
-              </label>
-              <input
-                type="number"
-                name="tips"
-                value={formData.tips}
-                onChange={handleInputChange}
-                placeholder="0.00"
-                className="input-field w-full"
-                step="0.01"
-                min="0"
-              />
-            </div>
-
-            {/* Extras */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Extras
-              </label>
-              <input
-                type="number"
-                name="extras"
-                value={formData.extras}
-                onChange={handleInputChange}
-                placeholder="0.00"
-                className="input-field w-full"
-                step="0.01"
-                min="0"
-              />
-            </div>
-
-            {/* Gasto en Combustible */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Gasto en Combustible
-              </label>
-              <input
-                type="number"
-                name="fuelCost"
-                value={formData.fuelCost}
-                onChange={handleInputChange}
-                placeholder="0.00"
-                className="input-field w-full"
-                step="0.01"
-                min="0"
-              />
-            </div>
-
-            {/* Gastos Varios */}
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Gastos Varios
-              </label>
-              <input
-                type="number"
-                name="otherExpenses"
-                value={formData.otherExpenses}
-                onChange={handleInputChange}
-                placeholder="0.00"
-                className="input-field w-full"
-                step="0.01"
-                min="0"
-              />
-            </div>
+            {campos.map(campo => (
+              <div key={campo.name}>
+                <label className="block text-sm font-medium text-dark-300 mb-2">
+                  {campo.label}
+                </label>
+                <input
+                  type="number"
+                  name={campo.name}
+                  value={datosFormulario[campo.name]}
+                  onChange={manejarCambioInput}
+                  placeholder={campo.placeholder}
+                  className="input-field w-full"
+                  step={campo.step}
+                  min="0"
+                />
+              </div>
+            ))}
           </div>
         </div>
-
-        {/* Sección de cálculos automáticos */}
+        {/* Panel de cálculos automáticos y botón de guardar */}
         <div className="space-y-6">
           <div className="card">
             <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-              <Calculator size={20} className="text-success-500" />
-              Cálculos Automáticos
+              <Calculator size={20} className="text-success-500" /> Cálculos Automáticos
             </h2>
-
             <div className="space-y-4">
-              {/* Card de Ganancias Brutas */}
+              {/* Ganancias Brutas */}
               <div className="bg-dark-700 rounded-lg p-4 border border-success-600/20">
                 <h3 className="text-sm font-medium text-dark-300 mb-2">Ganancias Brutas</h3>
                 <div className="text-2xl font-bold text-success-400 mb-3">
-                  ${calculations.grossEarnings.toFixed(2)}
+                  ${calculos.gananciasBrutas?.toFixed(2) || '0.00'}
                 </div>
                 <div className="grid grid-cols-1 gap-1 text-xs text-dark-400">
-                  <span>Por km: ${calculations.grossPerKm.toFixed(2)}</span>
-                  <span>Por hora: ${calculations.grossPerHour.toFixed(2)}</span>
-                  <span>Por viaje: ${calculations.grossPerTrip.toFixed(2)}</span>
+                  <span>Por km: ${calculos.brutasPorKm?.toFixed(2) || '0.00'}</span>
+                  <span>Por hora: ${calculos.brutasPorHora?.toFixed(2) || '0.00'}</span>
+                  <span>Por viaje: ${calculos.brutasPorViaje?.toFixed(2) || '0.00'}</span>
                 </div>
               </div>
-
-              {/* Card de Gastos Totales */}
+              {/* Gastos Totales */}
               <div className="bg-dark-700 rounded-lg p-4 border border-danger-600/20">
                 <h3 className="text-sm font-medium text-dark-300 mb-2">Gastos Totales</h3>
                 <div className="text-2xl font-bold text-danger-400">
-                  ${calculations.totalExpenses.toFixed(2)}
+                  ${calculos.gastosTotales?.toFixed(2) || '0.00'}
                 </div>
               </div>
-
-              {/* Card de Ganancias Netas */}
+              {/* Ganancias Netas */}
               <div className="bg-dark-700 rounded-lg p-4 border-2 border-primary-600">
                 <h3 className="text-sm font-medium text-dark-300 mb-2">Ganancias Netas</h3>
                 <div className="text-3xl font-bold text-primary-400 mb-3">
-                  ${calculations.netEarnings.toFixed(2)}
+                  ${calculos.gananciasNetas?.toFixed(2) || '0.00'}
                 </div>
                 <div className="grid grid-cols-1 gap-1 text-xs text-dark-400">
-                  <span>Por km: ${calculations.netPerKm.toFixed(2)}</span>
-                  <span>Por hora: ${calculations.netPerHour.toFixed(2)}</span>
-                  <span>Por viaje: ${calculations.netPerTrip.toFixed(2)}</span>
+                  <span>Por km: ${calculos.netasPorKm?.toFixed(2) || '0.00'}</span>
+                  <span>Por hora: ${calculos.netasPorHora?.toFixed(2) || '0.00'}</span>
+                  <span>Por viaje: ${calculos.netasPorViaje?.toFixed(2) || '0.00'}</span>
                 </div>
               </div>
             </div>
-
-            {/* Botón para guardar */}
+            {/* Botón para guardar el registro */}
             <button
-              onClick={handleSave}
-              disabled={loading}
-              className={`btn-primary w-full mt-6 flex items-center justify-center gap-2 ${
-                loading ? 'btn-disabled' : ''
-              }`}
+              onClick={manejarGuardar}
+              disabled={cargando}
+              className={`btn-primary w-full mt-6 flex items-center justify-center gap-2 ${cargando ? 'btn-disabled' : ''}`}
             >
-              {loading ? (
+              {cargando ? (
                 <>
                   <div className="loading-spinner w-5 h-5"></div>
                   Guardando...
