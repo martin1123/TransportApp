@@ -1,41 +1,172 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Route, MapPin, DollarSign, TrendingUp, TrendingDown, Minus, Navigation, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import axios from 'axios';
 
+/**
+ * Pantalla de Análisis de Rentabilidad de Viajes
+ */
 const TripsScreen = () => {
   // Obtener usuario autenticado del contexto
   const { user } = useAuth();
 
+  // Estados del formulario principal
   const [formData, setFormData] = useState({
-    origin: '',                   
-    destination: '',              
-    desiredPricePerKm: '',        
-    tripPrice: '',                
+    origin: '',
+    destination: '',
+    desiredPricePerKm: '',
+    tripPrice: '',
   });
 
-  const [originSuggestions, setOriginSuggestions] = useState([]); 
-  const [destinationSuggestions, setDestinationSuggestions] = useState([]); 
-  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false); 
-  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false); 
+  // Estados para el sistema de sugerencias de direcciones
+  const [originSuggestions, setOriginSuggestions] = useState([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState([]);
+  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
 
-  const [originCoords, setOriginCoords] = useState(null); 
-  const [destinationCoords, setDestinationCoords] = useState(null); 
+  // Estados para coordenadas geográficas seleccionadas
+  const [originCoords, setOriginCoords] = useState(null); // [longitud, latitud]
+  const [destinationCoords, setDestinationCoords] = useState(null);
 
-  const [analysis, setAnalysis] = useState(null); 
+  // Estados para análisis de rentabilidad
+  const [analysis, setAnalysis] = useState(null);
 
-  const [loading, setLoading] = useState(false); 
-  const [notification, setNotification] = useState(null); 
+  // Estados de UI y control
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState(null);
 
+  // Estados para el mapa
+  const mapContainer = useRef(null);
+  const map = useRef(null);
+  const [routeGeoJSON, setRouteGeoJSON] = useState(null);
+  const [mapboxLoaded, setMapboxLoaded] = useState(false);
+
+  // Configuración de Mapbox
   const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiNDI4OTk3NDciLCJhIjoiY21iNm5qOGZ0MDFubDJycGxyaW03MTN0YSJ9.KiujcKaRF9ED2we6H3-GAw';
 
+  // Cargar Mapbox GL JS dinámicamente
+  useEffect(() => {
+    const loadMapbox = async () => {
+      try {
+        if (!document.querySelector('link[href*="mapbox-gl.css"]')) {
+          const link = document.createElement('link');
+          link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+          link.rel = 'stylesheet';
+          document.head.appendChild(link);
+        }
+        if (!window.mapboxgl) {
+          const script = document.createElement('script');
+          script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+          script.onload = () => {
+            window.mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+            setMapboxLoaded(true);
+          };
+          document.head.appendChild(script);
+        } else {
+          window.mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+          setMapboxLoaded(true);
+        }
+      } catch (error) {
+        console.error('Error cargando Mapbox:', error);
+      }
+    };
+    loadMapbox();
+  }, []);
+
+  // Inicializar el mapa cuando Mapbox esté cargado
+  useEffect(() => {
+    if (!mapboxLoaded || !window.mapboxgl || map.current || !mapContainer.current) return;
+    try {
+      map.current = new window.mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-58.4173, -34.6118], // Buenos Aires
+        zoom: 10,
+      });
+      map.current.addControl(new window.mapboxgl.NavigationControl(), 'top-right');
+      map.current.on('error', (e) => {
+        console.error('Error del mapa:', e);
+      });
+    } catch (error) {
+      console.error('Error inicializando mapa:', error);
+    }
+  }, [mapboxLoaded]);
+
+  // Actualizar el mapa con la ruta calculada
+  useEffect(() => {
+    if (!map.current || !routeGeoJSON || !window.mapboxgl) return;
+    try {
+      // Remover ruta existente si existe
+      if (map.current.getSource('route')) {
+        map.current.removeLayer('route');
+        map.current.removeSource('route');
+      }
+      // Remover marcadores existentes
+      const existingMarkers = document.querySelectorAll('.mapboxgl-marker');
+      existingMarkers.forEach(marker => marker.remove());
+      // Agregar nueva ruta
+      map.current.addSource('route', {
+        type: 'geojson',
+        data: routeGeoJSON,
+      });
+      map.current.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#2563EB',
+          'line-width': 4,
+          'line-opacity': 0.8,
+        },
+      });
+      // Agregar marcadores para origen y destino
+      if (originCoords) {
+        new window.mapboxgl.Marker({ color: '#10b981' })
+          .setLngLat(originCoords)
+          .setPopup(new window.mapboxgl.Popup().setText('Origen'))
+          .addTo(map.current);
+      }
+      if (destinationCoords) {
+        new window.mapboxgl.Marker({ color: '#ef4444' })
+          .setLngLat(destinationCoords)
+          .setPopup(new window.mapboxgl.Popup().setText('Destino'))
+          .addTo(map.current);
+      }
+      // Ajustar vista para mostrar toda la ruta
+      const coords = routeGeoJSON.features[0].geometry.coordinates;
+      const bounds = coords.reduce(function (bounds, coord) {
+        return bounds.extend(coord);
+      }, new window.mapboxgl.LngLatBounds(coords[0], coords[0]));
+      map.current.fitBounds(bounds, { padding: 50 });
+    } catch (error) {
+      console.error('Error actualizando mapa:', error);
+    }
+  }, [routeGeoJSON, originCoords, destinationCoords]);
+
+  // Notificaciones
   const showNotification = (type, message) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
   };
+   // Limpiar marcadores y ruta del mapa cuando se limpian los estados
+  useEffect(() => {
+    if (!map.current || originCoords || destinationCoords || routeGeoJSON) return;
+    // Elimina todos los marcadores
+    const existingMarkers = document.querySelectorAll('.mapboxgl-marker');
+    existingMarkers.forEach(marker => marker.remove());
+    // Elimina la ruta si existe
+    if (map.current.getSource && map.current.getSource('route')) {
+      map.current.removeLayer('route');
+      map.current.removeSource('route');
+    }
+  }, [originCoords, destinationCoords, routeGeoJSON]);
 
-  // Para buscar sugerencias de direcciones usando la API de Mapbox
+  // Sugerencias de direcciones
   const fetchSuggestions = async (query, isOrigin) => {
     if (query.length < 3) {
       if (isOrigin) {
@@ -47,21 +178,18 @@ const TripsScreen = () => {
       }
       return;
     }
-
     try {
       const response = await axios.get(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`,
         {
           params: {
             access_token: MAPBOX_ACCESS_TOKEN,
-            country: 'ar', 
-            limit: 5,     
+            country: 'ar',
+            limit: 5,
           },
         }
       );
-
       const suggestions = response.data.features || [];
-      
       if (isOrigin) {
         setOriginSuggestions(suggestions);
         setShowOriginSuggestions(true);
@@ -74,7 +202,7 @@ const TripsScreen = () => {
     }
   };
 
-   //Para seleccionar una sugerencia
+  // Selección de sugerencia
   const selectSuggestion = (suggestion, isOrigin) => {
     if (isOrigin) {
       setFormData(prev => ({ ...prev, origin: suggestion.place_name }));
@@ -89,44 +217,36 @@ const TripsScreen = () => {
     }
   };
 
-
+  // Cambios en los inputs
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
     if (name === 'origin') {
       fetchSuggestions(value, true);
     } else if (name === 'destination') {
       fetchSuggestions(value, false);
     }
-    
     if (notification) setNotification(null);
   };
 
-  //Calcular la rentabilidad del viaje
+  // Calcular rentabilidad y ruta
   const calculateProfitability = async () => {
     if (!originCoords || !destinationCoords) {
       showNotification('error', 'Por favor selecciona origen y destino válidos de las sugerencias');
       return;
     }
-
     if (!formData.desiredPricePerKm || !formData.tripPrice) {
       showNotification('error', 'Por favor completa el precio deseado por km y el precio del viaje');
       return;
     }
-
     const tripPrice = parseFloat(formData.tripPrice);
     const desiredPricePerKm = parseFloat(formData.desiredPricePerKm);
-
     if (isNaN(tripPrice) || tripPrice <= 0 || isNaN(desiredPricePerKm) || desiredPricePerKm <= 0) {
       showNotification('error', 'Por favor ingresa precios válidos');
       return;
     }
-
     setLoading(true);
-
     try {
-      // Obtener ruta usando la API en Mapbox
       const response = await axios.get(
         `https://api.mapbox.com/directions/v5/mapbox/driving/${originCoords[0]},${originCoords[1]};${destinationCoords[0]},${destinationCoords[1]}`,
         {
@@ -137,35 +257,38 @@ const TripsScreen = () => {
           },
         }
       );
-
       if (!response.data.routes || response.data.routes.length === 0) {
         showNotification('error', 'No se pudo calcular la ruta entre los puntos seleccionados');
         return;
       }
-
       const route = response.data.routes[0];
-      const distanceKm = route.distance / 1000; 
+      const distanceKm = route.distance / 1000;
       const actualPricePerKm = tripPrice / distanceKm;
       const difference = ((actualPricePerKm - desiredPricePerKm) / desiredPricePerKm) * 100;
-
-      // Determinar rentabilidad
       let profitability;
       if (difference >= 10) {
-        profitability = 'rentable';        
-      } else if (difference < 10) {
-        profitability = 'poco_rentable';   
+        profitability = 'rentable';
+      } else if (difference >= -10) {
+        profitability = 'poco_rentable';
       } else {
-        profitability = 'no_rentable';     
+        profitability = 'no_rentable';
       }
-
-      // Actualizar estado con el análisis completo
       setAnalysis({
         distance: distanceKm,
         actualPricePerKm,
         profitability,
         difference,
       });
-
+      setRouteGeoJSON({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: route.geometry,
+            properties: {},
+          },
+        ],
+      });
     } catch (error) {
       console.error('Error calculando ruta:', error);
       showNotification('error', 'Error al calcular la ruta. Verifica tu conexión a internet');
@@ -174,13 +297,13 @@ const TripsScreen = () => {
     }
   };
 
- 
+  // Guardar análisis
   const handleSave = async () => {
     if (!user || !analysis) return;
     setLoading(true);
 
     try {
-      // En algun momento se va a poder guardar!
+      // Simulación de guardado (no guarda en Supabase)
       showNotification('success', 'Análisis guardado correctamente');
       
       // Limpiar formulario después de guardar
@@ -193,7 +316,9 @@ const TripsScreen = () => {
       setOriginCoords(null);
       setDestinationCoords(null);
       setAnalysis(null);
-
+      setRouteGeoJSON(null);
+      
+      
     } catch (error) {
       console.error('Error guardando análisis:', error);
       showNotification('error', 'No se pudo guardar el análisis');
@@ -202,7 +327,7 @@ const TripsScreen = () => {
     }
   };
 
-  //Para los colores y disenios de rentabilidad  
+  // Helpers UI
   const getProfitabilityColor = (profitability) => {
     switch (profitability) {
       case 'rentable': return 'text-green-400 border-green-400';
@@ -211,7 +336,6 @@ const TripsScreen = () => {
       default: return 'text-gray-400 border-gray-400';
     }
   };
-
   const getProfitabilityIcon = (profitability) => {
     switch (profitability) {
       case 'rentable': return <TrendingUp size={24} className="text-green-400" />;
@@ -220,7 +344,6 @@ const TripsScreen = () => {
       default: return null;
     }
   };
-
   const getProfitabilityLabel = (profitability) => {
     switch (profitability) {
       case 'rentable': return 'RENTABLE';
@@ -232,7 +355,7 @@ const TripsScreen = () => {
 
   return (
     <div className="min-h-screen bg-dark-900 text-white">
-      {/* Header de la pantalla */}
+      {/* Header */}
       <div className="bg-dark-800 border-b border-dark-700 px-6 py-4">
         <div className="flex items-center space-x-3">
           <Route size={32} className="text-primary-500" />
@@ -240,7 +363,7 @@ const TripsScreen = () => {
         </div>
       </div>
 
-      {/* Notificación */}
+      {/* Notificación temporal */}
       {notification && (
         <div className={`${notification.type === 'success' ? 'notification-success' : 'notification-error'} fixed top-4 right-4 z-50`}>
           {notification.type === 'success' ? (
@@ -259,9 +382,8 @@ const TripsScreen = () => {
             <MapPin size={24} className="text-primary-500" />
             <span>Datos del Viaje</span>
           </h2>
-          
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* origen con sugerencias */}
+            {/* Campo de origen */}
             <div className="relative">
               <label className="block text-sm font-medium text-dark-300 mb-2">
                 Dirección de origen
@@ -281,12 +403,10 @@ const TripsScreen = () => {
                     }
                   }}
                   onBlur={() => {
-                    // Retrasar el ocultado para permitir selección
                     setTimeout(() => setShowOriginSuggestions(false), 200);
                   }}
                 />
               </div>
-              
               {showOriginSuggestions && originSuggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 z-50 bg-dark-800 border border-dark-600 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
                   {originSuggestions.map((suggestion) => (
@@ -302,8 +422,7 @@ const TripsScreen = () => {
                 </div>
               )}
             </div>
-
-            {/* Campo de destino con sugerencias */}
+            {/* Campo de destino */}
             <div className="relative">
               <label className="block text-sm font-medium text-dark-300 mb-2">
                 Dirección de destino
@@ -327,8 +446,6 @@ const TripsScreen = () => {
                   }}
                 />
               </div>
-              
-              {/* Lista de sugerencias de destino */}
               {showDestinationSuggestions && destinationSuggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 z-50 bg-dark-800 border border-dark-600 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
                   {destinationSuggestions.map((suggestion) => (
@@ -344,7 +461,6 @@ const TripsScreen = () => {
                 </div>
               )}
             </div>
-
             {/* Precio deseado por km */}
             <div>
               <label className="block text-sm font-medium text-dark-300 mb-2">
@@ -364,7 +480,6 @@ const TripsScreen = () => {
                 />
               </div>
             </div>
-
             {/* Precio total del viaje */}
             <div>
               <label className="block text-sm font-medium text-dark-300 mb-2">
@@ -385,7 +500,6 @@ const TripsScreen = () => {
               </div>
             </div>
           </div>
-
           {/* Botón para calcular */}
           <button
             onClick={calculateProfitability}
@@ -403,47 +517,37 @@ const TripsScreen = () => {
         {analysis && (
           <div className="card">
             <h2 className="text-2xl font-semibold mb-6">Análisis de Rentabilidad</h2>
-            
             <div className={`border-2 rounded-xl p-6 ${getProfitabilityColor(analysis.profitability)}`}>
-              {/* Header del análisis con icono y etiqueta */}
               <div className="flex items-center space-x-3 mb-6">
                 {getProfitabilityIcon(analysis.profitability)}
                 <span className={`text-2xl font-bold ${getProfitabilityColor(analysis.profitability).split(' ')[0]}`}>
                   {getProfitabilityLabel(analysis.profitability)}
                 </span>
               </div>
-
-              {/* Detalles del análisis en grid */}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                 <div className="bg-dark-800 rounded-lg p-4">
                   <span className="block text-sm text-dark-400 mb-1">Distancia calculada</span>
                   <span className="text-xl font-bold">{analysis.distance.toFixed(2)} km</span>
                 </div>
-                
                 <div className="bg-dark-800 rounded-lg p-4">
                   <span className="block text-sm text-dark-400 mb-1">Precio real por km</span>
                   <span className="text-xl font-bold">${analysis.actualPricePerKm.toFixed(2)}</span>
                 </div>
-                
                 <div className="bg-dark-800 rounded-lg p-4">
                   <span className="block text-sm text-dark-400 mb-1">Precio deseado por km</span>
                   <span className="text-xl font-bold">${parseFloat(formData.desiredPricePerKm).toFixed(2)}</span>
                 </div>
-                
                 <div className="bg-dark-800 rounded-lg p-4">
                   <span className="block text-sm text-dark-400 mb-1">Diferencia</span>
                   <span className={`text-xl font-bold ${analysis.difference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {analysis.difference > 0 ? '+' : ''}{analysis.difference.toFixed(1)}%
                   </span>
                 </div>
-                
                 <div className="bg-dark-800 rounded-lg p-4">
                   <span className="block text-sm text-dark-400 mb-1">Precio total</span>
                   <span className="text-xl font-bold">${parseFloat(formData.tripPrice).toFixed(2)}</span>
                 </div>
               </div>
-
-              {/* Botón para guardar análisis */}
               <button
                 onClick={handleSave}
                 disabled={loading}
@@ -458,25 +562,37 @@ const TripsScreen = () => {
           </div>
         )}
 
-        {/* Información del mapa */}
+        {/* Mapa de Mapbox */}
         <div className="card">
           <h2 className="text-2xl font-semibold mb-6 flex items-center space-x-2">
             <MapPin size={24} className="text-primary-500" />
             <span>Mapa del Viaje</span>
           </h2>
-          <div className="bg-dark-800 border border-dark-600 rounded-xl p-12 text-center">
-            <MapPin size={64} className="mx-auto text-dark-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Mapa del viaje</h3>
-            <p className="text-dark-400 mb-2">
-              {analysis ? 
-                `Ruta calculada: ${analysis.distance.toFixed(2)} km` : 
-                'Calcula una ruta para ver la información del viaje'
-              }
-            </p>
-            <p className="text-sm text-dark-500">
-              El mapa interactivo estará disponible en futuras versiones
-            </p>
-          </div>
+          {mapboxLoaded ? (
+            <div
+              ref={mapContainer}
+              className="w-full h-96 rounded-xl border border-dark-600 overflow-hidden"
+              style={{ minHeight: '400px' }}
+            />
+          ) : (
+            <div className="bg-dark-800 border border-dark-600 rounded-xl p-12 text-center h-96 flex flex-col items-center justify-center">
+              <div className="loading-spinner w-8 h-8 mb-4"></div>
+              <h3 className="text-xl font-semibold mb-2">Cargando mapa...</h3>
+              <p className="text-dark-400 mb-2">
+                Inicializando Mapbox GL JS
+              </p>
+            </div>
+          )}
+          {analysis && (
+            <div className="mt-4 text-center">
+              <p className="text-dark-400">
+                Ruta calculada: <span className="text-white font-semibold">{analysis.distance.toFixed(2)} km</span>
+              </p>
+              <p className="text-sm text-dark-500 mt-1">
+                Marcador verde: Origen • Marcador rojo: Destino • Línea azul: Ruta
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
