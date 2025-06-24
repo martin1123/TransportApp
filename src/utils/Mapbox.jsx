@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiNDI4OTk3NDciLCJhIjoiY21iNm5qOGZ0MDFubDJycGxyaW03MTN0YSJ9.KiujcKaRF9ED2we6H3-GAw';
+export const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 export const fetchSuggestions = async (query, country = 'ar', limit = 5) => {
   if (!query || query.length < 3) return [];
