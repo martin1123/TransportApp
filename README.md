@@ -59,6 +59,8 @@ npm install
 npm run dev
 ```
 
+
+---
 # 🧬 Base de Datos
 TransportApp utiliza Supabase como backend, donde se almacenan todos los datos clave del usuario: ganancias, viajes, servicios realizados, etc. A continuación se detallan las tablas principales utilizadas:
 
