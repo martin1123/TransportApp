@@ -65,7 +65,7 @@ const Register = () => {
       if (error) {
         showNotification('error', error)
       } else {
-        showNotification('success', '¡Cuenta creada exitosamente! Redirigiendo al login...')
+        showNotification('success', '¡Cuenta creada exitosamente. No es necesario que confirmes tu cuenta! Redirigiendo al login...')
       }
     } catch (error) {
       showNotification('error', 'Error inesperado. Intenta nuevamente.')

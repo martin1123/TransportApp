@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Route, MapPin, DollarSign, TrendingUp, TrendingDown, Minus, Navigation, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import axios from 'axios';
+import { fetchSuggestions, fetchRoute, MAPBOX_ACCESS_TOKEN} from '@/utils/Mapbox'; // <-- Importa el helper centralizado
 
 /**
  * Pantalla de Análisis de Rentabilidad de Viajes
@@ -43,7 +43,6 @@ const TripsScreen = () => {
   const [mapboxLoaded, setMapboxLoaded] = useState(false);
 
   // Configuración de Mapbox
-  const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiNDI4OTk3NDciLCJhIjoiY21iNm5qOGZ0MDFubDJycGxyaW03MTN0YSJ9.KiujcKaRF9ED2we6H3-GAw';
 
   // Cargar Mapbox GL JS dinámicamente
   useEffect(() => {
@@ -153,7 +152,8 @@ const TripsScreen = () => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
   };
-   // Limpiar marcadores y ruta del mapa cuando se limpian los estados
+
+  // Limpiar marcadores y ruta del mapa cuando se limpian los estados
   useEffect(() => {
     if (!map.current || originCoords || destinationCoords || routeGeoJSON) return;
     // Elimina todos los marcadores
@@ -166,8 +166,8 @@ const TripsScreen = () => {
     }
   }, [originCoords, destinationCoords, routeGeoJSON]);
 
-  // Sugerencias de direcciones
-  const fetchSuggestions = async (query, isOrigin) => {
+  // Sugerencias de direcciones usando el helper centralizado
+  const fetchSuggestionsHandler = async (query, isOrigin) => {
     if (query.length < 3) {
       if (isOrigin) {
         setOriginSuggestions([]);
@@ -179,17 +179,7 @@ const TripsScreen = () => {
       return;
     }
     try {
-      const response = await axios.get(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`,
-        {
-          params: {
-            access_token: MAPBOX_ACCESS_TOKEN,
-            country: 'ar',
-            limit: 5,
-          },
-        }
-      );
-      const suggestions = response.data.features || [];
+      const suggestions = await fetchSuggestions(query);
       if (isOrigin) {
         setOriginSuggestions(suggestions);
         setShowOriginSuggestions(true);
@@ -222,14 +212,14 @@ const TripsScreen = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (name === 'origin') {
-      fetchSuggestions(value, true);
+      fetchSuggestionsHandler(value, true);
     } else if (name === 'destination') {
-      fetchSuggestions(value, false);
+      fetchSuggestionsHandler(value, false);
     }
     if (notification) setNotification(null);
   };
 
-  // Calcular rentabilidad y ruta
+  // Calcular rentabilidad y ruta usando el helper centralizado
   const calculateProfitability = async () => {
     if (!originCoords || !destinationCoords) {
       showNotification('error', 'Por favor selecciona origen y destino válidos de las sugerencias');
@@ -247,21 +237,7 @@ const TripsScreen = () => {
     }
     setLoading(true);
     try {
-      const response = await axios.get(
-        `https://api.mapbox.com/directions/v5/mapbox/driving/${originCoords[0]},${originCoords[1]};${destinationCoords[0]},${destinationCoords[1]}`,
-        {
-          params: {
-            access_token: MAPBOX_ACCESS_TOKEN,
-            geometries: 'geojson',
-            overview: 'full',
-          },
-        }
-      );
-      if (!response.data.routes || response.data.routes.length === 0) {
-        showNotification('error', 'No se pudo calcular la ruta entre los puntos seleccionados');
-        return;
-      }
-      const route = response.data.routes[0];
+      const route = await fetchRoute(originCoords, destinationCoords);
       const distanceKm = route.distance / 1000;
       const actualPricePerKm = tripPrice / distanceKm;
       const difference = ((actualPricePerKm - desiredPricePerKm) / desiredPricePerKm) * 100;
@@ -297,34 +273,18 @@ const TripsScreen = () => {
     }
   };
 
-  // Guardar análisis
-  const handleSave = async () => {
-    if (!user || !analysis) return;
-    setLoading(true);
-
-    try {
-      // Simulación de guardado (no guarda en Supabase)
-      showNotification('success', 'Análisis guardado correctamente');
-      
-      // Limpiar formulario después de guardar
-      setFormData({
-        origin: '',
-        destination: '',
-        desiredPricePerKm: '',
-        tripPrice: '',
-      });
-      setOriginCoords(null);
-      setDestinationCoords(null);
-      setAnalysis(null);
-      setRouteGeoJSON(null);
-      
-      
-    } catch (error) {
-      console.error('Error guardando análisis:', error);
-      showNotification('error', 'No se pudo guardar el análisis');
-    } finally {
-      setLoading(false);
-    }
+  // limpiar el formulario
+  const handleClearForm = () => {
+    setFormData({
+      origin: '',
+      destination: '',
+      desiredPricePerKm: '',
+      tripPrice: '',
+    });
+    setOriginCoords(null);
+    setDestinationCoords(null);
+    setAnalysis(null);
+    setRouteGeoJSON(null);
   };
 
   // Helpers UI
@@ -549,14 +509,10 @@ const TripsScreen = () => {
                 </div>
               </div>
               <button
-                onClick={handleSave}
-                disabled={loading}
-                className={`btn-success w-full flex items-center justify-center space-x-2 ${
-                  loading ? 'btn-disabled' : ''
-                }`}
+                onClick={handleClearForm}
+                className="btn-success w-full flex items-center justify-center space-x-2"
               >
-                {loading && <div className="loading-spinner w-5 h-5"></div>}
-                <span>{loading ? 'Guardando...' : 'Guardar Análisis'}</span>
+                <span>Limpiar formulario</span>
               </button>
             </div>
           </div>
