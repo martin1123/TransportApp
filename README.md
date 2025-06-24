@@ -12,12 +12,14 @@ TransportApp es una aplicación orientada a personas que trabajan con transporte
 <img width="548" alt="Captura de pantalla 2025-06-24 a la(s) 9 45 11 a  m" src="https://github.com/user-attachments/assets/7ca6cbea-8621-416f-96fd-f55fc15c1a5f" />
 
 
-\
-Stack principal:
+ 
+Tecnologías utilizadas:
 - ⚛️ React
 - ⚡ Vite
 - 🎨 TailwindCSS
 - 🧰 Supabase (auth y base de datos)
+
+
 
 👫🏻 Participantes
 - Melissa Baran
