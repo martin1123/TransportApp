@@ -1,6 +1,6 @@
 # TransportApp
 
-## 📑 Índice
+## Índice
 
 - [🧱 Tecnologías y Propósito](#-tecnologías-y-propósito)
 - [🛠 Tecnologías utilizadas](#tecnologías-utilizadas)
@@ -12,8 +12,9 @@
   - [🧮 Tabla trip_analysis](#-tabla-trip_analysis)
   - [🛠 Tabla service_records](#-tabla-service_records)
 - [📢 Notas Finales](#-notas-finales)
+- [🎓 Aclaración Académica](#-aclaración-académica)
 - [👫🏻 Participantes](#-participantes)
-
+---
 
 # 🧱 Tecnologías y Propósito
 TransportApp es una aplicación orientada a personas que trabajan con transporte de pasajeros: conductores de taxis, remises o apps como Uber/Cabify. El objetivo es brindarles una herramienta ágil para:
@@ -21,7 +22,7 @@ TransportApp es una aplicación orientada a personas que trabajan con transporte
 - Calcular automáticamente ingresos y gastos
 - Consultar el historial de servicios
 - Obtener estadísticas de rendimiento
-
+---
 
 # Tecnologías utilizadas:
 - ⚛️ React
@@ -119,12 +120,17 @@ TransportApp utiliza Supabase como backend, donde se almacenan todos los datos c
 
 
 
+---
 
 # 📢 Notas Finales
 - Se utiliza React Context para manejar la sesión y los datos de usuario
 - Se usan hooks personalizados para mantener lógica separada y reutilizable
 - El diseño es completamente responsivo y optimizado para uso móvil
 
+
+## 🎓 Aclaración Académica
+
+Este proyecto fue desarrollado como parte de la cursada de la materia **Programación de Nuevas Tecnologías** en el **Instituto ORT**.
 
 # 👫🏻 Participantes
 - Melissa Baran
