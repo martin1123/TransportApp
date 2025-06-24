@@ -119,6 +119,39 @@ TransportApp utiliza Supabase como backend, donde se almacenan todos los datos c
 | created_at          | timestamptz  | DEFAULT now()                                | Fecha de creación del registro              |
 
 
+Para proteger los datos de cada usuario, TransportApp implementa Row Level Security (RLS) en todas las tablas principales de la base de datos. Esto garantiza que cada persona autenticada solo pueda acceder, modificar y ver sus propios registros. Las políticas RLS activadas son las siguientes:
+```sql
+
+-- Habilitar RLS en cada tabla
+ALTER TABLE earnings_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE trip_analysis ENABLE ROW LEVEL SECURITY;
+ALTER TABLE service_records ENABLE ROW LEVEL SECURITY;
+
+-- Política para earnings_records
+CREATE POLICY "Users can manage their own earnings records"
+  ON earnings_records
+  FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Política para trip_analysis
+CREATE POLICY "Users can manage their own trip analysis"
+  ON trip_analysis
+  FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Política para service_records
+CREATE POLICY "Users can manage their own service records"
+  ON service_records
+  FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
 
 ---
 
