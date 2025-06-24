@@ -1,56 +1,3 @@
-/*
-
-  1. New Tables
-    - `earnings_records`
-      - `id` (uuid, primary key)
-      - `user_id` (uuid, references auth.users)
-      - `date` (date)
-      - `total_earnings` (numeric)
-      - `trips_completed` (integer)
-      - `kilometers_driven` (numeric)
-      - `hours_worked` (numeric)
-      - `tips` (numeric)
-      - `extras` (numeric)
-      - `fuel_cost` (numeric)
-      - `other_expenses` (numeric)
-      - `gross_earnings` (numeric, calculated)
-      - `gross_per_km` (numeric, calculated)
-      - `gross_per_hour` (numeric, calculated)
-      - `gross_per_trip` (numeric, calculated)
-      - `total_expenses` (numeric, calculated)
-      - `net_earnings` (numeric, calculated)
-      - `net_per_km` (numeric, calculated)
-      - `net_per_hour` (numeric, calculated)
-      - `net_per_trip` (numeric, calculated)
-      - `created_at` (timestamp)
-      - `updated_at` (timestamp)
-
-    - `trip_analysis`
-      - `id` (uuid, primary key)
-      - `user_id` (uuid, references auth.users)
-      - `origin` (text)
-      - `destination` (text)
-      - `distance_km` (numeric)
-      - `trip_price` (numeric)
-      - `desired_price_per_km` (numeric)
-      - `actual_price_per_km` (numeric)
-      - `profitability` (enum: rentable, poco_rentable, no_rentable)
-      - `created_at` (timestamp)
-
-    - `service_records`
-      - `id` (uuid, primary key)
-      - `user_id` (uuid, references auth.users)
-      - `service_type` (enum: vtv, oil_change, timing_belt, brakes)
-      - `service_date` (date)
-      - `current_mileage` (numeric)
-      - `next_service_date` (date, nullable)
-      - `next_service_mileage` (numeric, nullable)
-      - `created_at` (timestamp)
-
-  2. Security
-    - Enable RLS on all tables
-    - Add policies for authenticated users to manage their own data
-*/
 
 -- Create custom types
 CREATE TYPE profitability_type AS ENUM ('rentable', 'poco_rentable', 'no_rentable');
@@ -137,13 +84,6 @@ CREATE POLICY "Users can manage their own service records"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS earnings_records_user_id_idx ON earnings_records(user_id);
-CREATE INDEX IF NOT EXISTS earnings_records_date_idx ON earnings_records(date);
-CREATE INDEX IF NOT EXISTS trip_analysis_user_id_idx ON trip_analysis(user_id);
-CREATE INDEX IF NOT EXISTS trip_analysis_created_at_idx ON trip_analysis(created_at);
-CREATE INDEX IF NOT EXISTS service_records_user_id_idx ON service_records(user_id);
-CREATE INDEX IF NOT EXISTS service_records_service_type_idx ON service_records(service_type);
 
 -- Create updated_at trigger for earnings_records
 CREATE OR REPLACE FUNCTION update_updated_at_column()
