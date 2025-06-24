@@ -52,12 +52,18 @@ cd transportapp
 ```bash
 npm install
 ```
-
-🚀 3. Iniciar servidor
+🛠️ 3. Compilar aplicación
 ```bash
 
-npm run dev
+npm run build
 ```
+
+🚀 4. Iniciar servidor
+```bash
+
+npm run preview
+```
+
 
 
 ---
